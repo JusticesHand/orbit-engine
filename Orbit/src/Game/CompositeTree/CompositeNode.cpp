@@ -7,6 +7,19 @@ CompositeNode::CompositeNode(const std::string& name)
 {
 }
 
+CompositeNode::CompositeNode(CompositeNode&& rhs)
+	: Node(std::move(rhs)), _parent(std::move(rhs._parent)), _children(std::move(rhs._children))
+{
+}
+
+CompositeNode& CompositeNode::operator=(CompositeNode&& rhs)
+{
+	Node::operator=(std::move(rhs));
+	_parent = std::move(rhs._parent);
+	_children = std::move(rhs._children);
+	return *this;
+}
+
 void CompositeNode::acceptVisitor(const Visitor* visitor)
 {
 	for (std::shared_ptr<Node>& child : _children)

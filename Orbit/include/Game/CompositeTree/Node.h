@@ -17,6 +17,9 @@ namespace Orbit
 
 		virtual ~Node() = 0;
 
+		Node(Node&& rhs);
+		Node& operator=(Node&& rhs);
+
 		Node(const Node&) = delete;
 		Node& operator=(const Node&) = delete;
 
@@ -46,8 +49,10 @@ namespace Orbit
 
 	private:
 		bool _destroyed = false;
-		const std::string _name;
+		std::string _name;
 	};
+
+	inline Node::~Node() { }
 }
 
 #endif //GAME_COMPOSITETREE_NODE_H

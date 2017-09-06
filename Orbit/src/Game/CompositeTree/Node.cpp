@@ -7,8 +7,20 @@ Node::Node(const std::string& name)
 {
 }
 
+Node::Node(Node&& rhs)
+	: _name(std::move(rhs._name))
+{
+}
+
+Node& Node::operator=(Node&& rhs)
+{
+	_name = std::move(rhs._name);
+	return *this;
+}
+
 void Node::destroy()
-{ 
+{
+	setDestroyed(true);
 }
 
 std::string Node::getName() const

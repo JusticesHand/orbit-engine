@@ -15,6 +15,9 @@ namespace Orbit
 
 		virtual ~CompositeNode() = 0;
 
+		CompositeNode(CompositeNode&& rhs);
+		CompositeNode& operator=(CompositeNode&& rhs);
+
 		CompositeNode(const CompositeNode&) = delete;
 		CompositeNode& operator=(const CompositeNode&) = delete;
 

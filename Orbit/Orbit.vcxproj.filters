@@ -33,6 +33,9 @@
     <ClInclude Include="include\Game\CompositeTree\Node.h">
       <Filter>Header Files\Game\CompositeTree</Filter>
     </ClInclude>
+    <ClInclude Include="include\Game\CompositeTree\CompositeTree.h">
+      <Filter>Header Files\Game\CompositeTree</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Game\CompositeTree\Node.cpp">
@@ -43,6 +46,9 @@
     </ClCompile>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Game\CompositeTree\CompositeTree.cpp">
+      <Filter>Source Files\Game\CompositeTree</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
