@@ -25,6 +25,12 @@
     <Filter Include="Source Files\Game\CompositeTree">
       <UniqueIdentifier>{5bafbbd3-9e07-437b-a53b-f78f7e81406c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Input">
+      <UniqueIdentifier>{e2b6e4c4-69e0-4f4e-9536-9420efbd634b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Input">
+      <UniqueIdentifier>{a590f0c4-8cb1-4146-813d-5c59771f375e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Game\CompositeTree\CompositeNode.h">
@@ -35,6 +41,9 @@
     </ClInclude>
     <ClInclude Include="include\Game\CompositeTree\CompositeTree.h">
       <Filter>Header Files\Game\CompositeTree</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Input\Window.h">
+      <Filter>Header Files\Input</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -49,6 +58,9 @@
     </ClCompile>
     <ClCompile Include="src\Game\CompositeTree\CompositeTree.cpp">
       <Filter>Source Files\Game\CompositeTree</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Input\Window.cpp">
+      <Filter>Source Files\Input</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

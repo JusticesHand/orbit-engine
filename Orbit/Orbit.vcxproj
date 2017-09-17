@@ -14,11 +14,13 @@
     <ClInclude Include="include\Game\CompositeTree\CompositeNode.h" />
     <ClInclude Include="include\Game\CompositeTree\CompositeTree.h" />
     <ClInclude Include="include\Game\CompositeTree\Node.h" />
+    <ClInclude Include="include\Input\Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Game\CompositeTree\CompositeNode.cpp" />
     <ClCompile Include="src\Game\CompositeTree\CompositeTree.cpp" />
     <ClCompile Include="src\Game\CompositeTree\Node.cpp" />
+    <ClCompile Include="src\Input\Window.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
