@@ -11,17 +11,37 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\Game\CompositeTree\CompositeNode.h" />
-    <ClInclude Include="include\Game\CompositeTree\CompositeTree.h" />
-    <ClInclude Include="include\Game\CompositeTree\Node.h" />
+    <ClInclude Include="include\Game\Game.h" />
+    <ClInclude Include="include\Game\ModLibrary.h" />
     <ClInclude Include="include\Input\Window.h" />
+    <ClInclude Include="include\Render\VulkanGraphicsPipeline.h" />
+    <ClInclude Include="include\Render\VulkanModelRenderer.h" />
+    <ClInclude Include="include\Render\VulkanRenderer.h" />
+    <ClInclude Include="include\Render\VulkanUtils.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Game\CompositeTree\CompositeNode.cpp" />
-    <ClCompile Include="src\Game\CompositeTree\CompositeTree.cpp" />
-    <ClCompile Include="src\Game\CompositeTree\Node.cpp" />
+    <ClCompile Include="src\Game\Game.cpp" />
+    <ClCompile Include="src\Game\ModLibrary.cpp" />
     <ClCompile Include="src\Input\Window.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Render\VulkanGraphicsPipeline.cpp" />
+    <ClCompile Include="src\Render\VulkanModelRenderer.cpp" />
+    <ClCompile Include="src\Render\VulkanRenderer.cpp" />
+    <ClCompile Include="src\Render\VulkanUtils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\WorkDir\mods.json" />
+    <None Include="..\WorkDir\Shaders\build.bat" />
+    <None Include="..\WorkDir\Shaders\shader.frag" />
+    <None Include="..\WorkDir\Shaders\shader.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OrbitCore\OrbitCore.vcxproj">
+      <Project>{fc4f14e5-8833-4cf0-87d2-7a8fc8a8ecb0}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\OrbitMain\OrbitMain.vcxproj">
+      <Project>{070c10ae-2dcb-4589-8369-27b485bd9db5}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -61,7 +81,8 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>include;C:\VulkanSDK\1.0.51.0\Include;$(SolutionDir)..\libraries\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)..\libraries\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)OrbitCore\include;$(SolutionDir)..\libraries\nlohmann-json;include;C:\VulkanSDK\1.0.51.0\Include;$(SolutionDir)..\libraries\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)..\libraries\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ORBIT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>C:\VulkanSDK\1.0.51.0\Lib;$(SolutionDir)..\libraries\glfw-3.2.1.bin.WIN64\lib-vc2015;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -75,7 +96,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>include;C:\VulkanSDK\1.0.51.0\Include;$(SolutionDir)..\libraries\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)..\libraries\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)OrbitCore\include;$(SolutionDir)..\libraries\nlohmann-json;include;C:\VulkanSDK\1.0.51.0\Include;$(SolutionDir)..\libraries\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)..\libraries\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ORBIT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -87,4 +109,9 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

@@ -13,6 +13,7 @@ struct GLFWwindow;
 namespace Orbit
 {
 	class Renderer; /// Forward declaration for the Renderer class.
+	class Input;
 
 	/// A class encapsulating windowing operations and allows for running work load on the side.
 	/// This class implements the Singleton pattern, meaning its one instance should be acquired using
@@ -90,8 +91,11 @@ namespace Orbit
 		/// the instance of the Singleton.
 		Window(int width, int height, const std::string& title, bool fullscreen);
 
-		Window(const Window&) = default;
-		Window& operator=(const Window&) = default;
+		Window(const Window&) = delete;
+		Window& operator=(const Window&) = delete;
+
+		Window(Window&& rhs);
+		Window& operator=(Window&& rhs);
 
 		GLFWwindow* _windowHandle = nullptr; ///< The handle of the window, using GLFW.
 
@@ -104,7 +108,9 @@ namespace Orbit
 		bool _fullscreen; ///< Whether or not the window is currently in fullscreen mode.
 		std::string _title; ///< The title of the window.
 
-		bool _running = false;
+		bool _running = false; ///< Whether or not the scene is currently running.
+
+		std::unique_ptr<Renderer> _renderer;
 
 		static Window _instance; ///< The instance of the window.
 	};

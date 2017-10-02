@@ -55,6 +55,13 @@ void CompositeNode::destroy()
 	setDestroyed(true);
 }
 
+void CompositeNode::update(std::chrono::nanoseconds elapsedTime)
+{
+	for (std::shared_ptr<Node>& child : _children)
+		if (!child->destroyed())
+			child->update(elapsedTime);
+}
+
 ///	Adds a child to this node's children. Throws an exception if the parameter is null or the child
 ///	already exists in the subtree.
 ///	@param child the child to add.

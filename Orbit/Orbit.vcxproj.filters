@@ -16,14 +16,8 @@
     <Filter Include="Header Files\Game">
       <UniqueIdentifier>{b0cd3a42-dace-4d73-8e4b-be52a62dffbe}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Game\CompositeTree">
-      <UniqueIdentifier>{8a496266-ac48-4ecf-b793-7443a9c75be6}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\Game">
       <UniqueIdentifier>{e97821f7-b394-40ee-b098-505025983224}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\Game\CompositeTree">
-      <UniqueIdentifier>{5bafbbd3-9e07-437b-a53b-f78f7e81406c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\Input">
       <UniqueIdentifier>{e2b6e4c4-69e0-4f4e-9536-9420efbd634b}</UniqueIdentifier>
@@ -31,36 +25,77 @@
     <Filter Include="Source Files\Input">
       <UniqueIdentifier>{a590f0c4-8cb1-4146-813d-5c59771f375e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Render">
+      <UniqueIdentifier>{6e6bcbe9-ddb1-4e7f-b220-9515f3469a49}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Render">
+      <UniqueIdentifier>{7619f367-d3d2-43b4-8c0a-e21c11f5d6e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\Shaders">
+      <UniqueIdentifier>{25dfea80-734d-4daf-a2f7-399a1879098c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="include\Game\CompositeTree\CompositeNode.h">
-      <Filter>Header Files\Game\CompositeTree</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Game\CompositeTree\Node.h">
-      <Filter>Header Files\Game\CompositeTree</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Game\CompositeTree\CompositeTree.h">
-      <Filter>Header Files\Game\CompositeTree</Filter>
-    </ClInclude>
     <ClInclude Include="include\Input\Window.h">
       <Filter>Header Files\Input</Filter>
     </ClInclude>
+    <ClInclude Include="include\Game\Game.h">
+      <Filter>Header Files\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Game\ModLibrary.h">
+      <Filter>Header Files\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Render\VulkanRenderer.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Render\VulkanGraphicsPipeline.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Render\VulkanUtils.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Render\VulkanModelRenderer.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Game\CompositeTree\Node.cpp">
-      <Filter>Source Files\Game\CompositeTree</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Game\CompositeTree\CompositeNode.cpp">
-      <Filter>Source Files\Game\CompositeTree</Filter>
-    </ClCompile>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Game\CompositeTree\CompositeTree.cpp">
-      <Filter>Source Files\Game\CompositeTree</Filter>
     </ClCompile>
     <ClCompile Include="src\Input\Window.cpp">
       <Filter>Source Files\Input</Filter>
     </ClCompile>
+    <ClCompile Include="src\Game\Game.cpp">
+      <Filter>Source Files\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Game\ModLibrary.cpp">
+      <Filter>Source Files\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\VulkanRenderer.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\VulkanGraphicsPipeline.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\VulkanUtils.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\VulkanModelRenderer.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\WorkDir\mods.json">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="..\WorkDir\Shaders\build.bat">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="..\WorkDir\Shaders\shader.frag">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
+    <None Include="..\WorkDir\Shaders\shader.vert">
+      <Filter>Resource Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

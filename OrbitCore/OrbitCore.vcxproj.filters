@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Header Files\Game">
+      <UniqueIdentifier>{8c8b0ba6-f066-44bd-9557-b3805ee5b7f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Game\CompositeTree">
+      <UniqueIdentifier>{14a41df7-8ac3-477c-938b-568238c64ddc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Game">
+      <UniqueIdentifier>{3ed25900-f416-45c8-a2d6-1597f2e5c2fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Game\CompositeTree">
+      <UniqueIdentifier>{6006b348-5ad6-4972-a3a1-49a20a589b56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Input">
+      <UniqueIdentifier>{5d5daac2-ba42-40c0-9bea-ae03d1149b51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Input">
+      <UniqueIdentifier>{512e5812-fa94-4e2f-9cf3-c7f021c5727b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Render">
+      <UniqueIdentifier>{37681f31-adaa-4820-b94a-00f1019737f9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\Game\CompositeTree\CompositeNode.cpp">
+      <Filter>Source Files\Game\CompositeTree</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Game\CompositeTree\CompositeTree.cpp">
+      <Filter>Source Files\Game\CompositeTree</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Game\CompositeTree\Node.cpp">
+      <Filter>Source Files\Game\CompositeTree</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Input\Input.cpp">
+      <Filter>Source Files\Input</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\Game\MainModule.h">
+      <Filter>Header Files\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Game\Mod.h">
+      <Filter>Header Files\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Game\Scene.h">
+      <Filter>Header Files\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Game\CompositeTree\CompositeNode.h">
+      <Filter>Header Files\Game\CompositeTree</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Game\CompositeTree\CompositeTree.h">
+      <Filter>Header Files\Game\CompositeTree</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Game\CompositeTree\Node.h">
+      <Filter>Header Files\Game\CompositeTree</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Util.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Input\Input.h">
+      <Filter>Header Files\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Input\Key.h">
+      <Filter>Header Files\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Input\Mouse.h">
+      <Filter>Header Files\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Render\Renderer.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
