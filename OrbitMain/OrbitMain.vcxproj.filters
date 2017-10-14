@@ -25,6 +25,12 @@
     <Filter Include="Source Files\Nodes">
       <UniqueIdentifier>{990955d8-9d45-420b-81d2-f01f65fba174}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Factories">
+      <UniqueIdentifier>{b9a82999-255a-43ad-980e-125ffd6d5c50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Factories">
+      <UniqueIdentifier>{7ead46f2-f7ca-4102-bb7d-287e865a410f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\OrbitMainModule.cpp">
@@ -34,6 +40,15 @@
       <Filter>Source Files\Scenes</Filter>
     </ClCompile>
     <ClCompile Include="src\Nodes\TestNode.cpp">
+      <Filter>Source Files\Nodes</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Factories\TestNodeFactory.cpp">
+      <Filter>Source Files\Factories</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Factories\TestNode2Factory.cpp">
+      <Filter>Source Files\Factories</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Nodes\TestNode2.cpp">
       <Filter>Source Files\Nodes</Filter>
     </ClCompile>
   </ItemGroup>
@@ -46,6 +61,15 @@
     </ClInclude>
     <ClInclude Include="include\Nodes\TestNode.h">
       <Filter>Header Files\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Factories\TestNodeFactory.h">
+      <Filter>Header Files\Factories</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Nodes\TestNode2.h">
+      <Filter>Header Files\Nodes</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Factories\TestNode2Factory.h">
+      <Filter>Header Files\Factories</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

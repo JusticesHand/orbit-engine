@@ -15,9 +15,12 @@
     <ClInclude Include="include\Game\ModLibrary.h" />
     <ClInclude Include="include\Input\Window.h" />
     <ClInclude Include="include\Render\VulkanGraphicsPipeline.h" />
+    <ClInclude Include="include\Render\VulkanImage.h" />
+    <ClInclude Include="include\Render\VulkanMemoryBuffer.h" />
     <ClInclude Include="include\Render\VulkanModelRenderer.h" />
     <ClInclude Include="include\Render\VulkanRenderer.h" />
     <ClInclude Include="include\Render\VulkanUtils.h" />
+    <ClInclude Include="include\Visitors\ModelVisitor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Game\Game.cpp" />
@@ -25,9 +28,12 @@
     <ClCompile Include="src\Input\Window.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Render\VulkanGraphicsPipeline.cpp" />
+    <ClCompile Include="src\Render\VulkanImage.cpp" />
+    <ClCompile Include="src\Render\VulkanMemoryBuffer.cpp" />
     <ClCompile Include="src\Render\VulkanModelRenderer.cpp" />
     <ClCompile Include="src\Render\VulkanRenderer.cpp" />
     <ClCompile Include="src\Render\VulkanUtils.cpp" />
+    <ClCompile Include="src\Visitors\ModelVisitor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\WorkDir\mods.json" />

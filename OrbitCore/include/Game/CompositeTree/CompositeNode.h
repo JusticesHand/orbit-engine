@@ -27,11 +27,6 @@ namespace Orbit
 		///	Move constructor for the class. Moves the children as to not have multiple node ownerships.
 		///	@param rhs the node to move.
 		ORBIT_CORE_API CompositeNode(CompositeNode&& rhs);
-
-		///	Move assignment operator for the class.
-		///	Moves the children as to not have multiple node ownerships.
-		///	@param rhs the node to move.
-		///	@return a reference to this.
 		ORBIT_CORE_API CompositeNode& operator=(CompositeNode&& rhs);
 
 		CompositeNode(const CompositeNode&) = delete;
@@ -40,7 +35,7 @@ namespace Orbit
 		///	A method to implement the visitor pattern on this composite object.
 		///	Redirects the visitor to all children.
 		///	@param visitor a pointer to the used visitor.
-		ORBIT_CORE_API void acceptVisitor(const Visitor* visitor) override;
+		ORBIT_CORE_API void acceptVisitor(Visitor* visitor) override;
 
 		///	A method to destroy a node. Destroys child nodes.
 		ORBIT_CORE_API void destroy() override;

@@ -2,28 +2,44 @@
 
 #include "Game/CompositeTree/Node.h"
 
+#include "Game/CompositeTree/Visitor.h"
+
+#include "Render/Model.h"
+
+#include <glm/gtc/matrix_transform.hpp>
+
 using namespace Orbit;
 
 ///	Simply constructs a node with the name in parameter. Other members are constructed with default values.
 ///	@param name the name to apply to the node to be able to search for it later.
 Node::Node(const std::string& name)
-	: _name(name)
+	: Node(name, nullptr)
+{
+}
+
+Node::Node(const std::string& name, const std::shared_ptr<Model>& model)
+	: _name(name), _model(model)
 {
 }
 
 ///	Move constructor - moves the name from rhs (making it undefined). Useful as a base for derived class
 ///	move operations.
 Node::Node(Node&& rhs)
-	: _name(std::move(rhs._name))
+	: _name(std::move(rhs._name)), _model(rhs._model)
 {
 }
 
-///	Move assignment operator - as with the move constructor, moves the name from rhs (making it undefined).
-///	Useful as a base for derived class move operations.
 Node& Node::operator=(Node&& rhs)
 {
+	_destroyed = rhs._destroyed;
 	_name = std::move(rhs._name);
+	_model = rhs._model;
 	return *this;
+}
+
+void Node::acceptVisitor(Visitor* visitor)
+{
+	visitor->visitElement(this);
 }
 
 ///	Destroys the node. Base implementation simply flags the node as destroyed - derived classes are meant to
@@ -58,6 +74,16 @@ void Node::setDestroyed(bool value)
 	_destroyed = value;
 }
 
+bool Node::hasModel() const
+{
+	return _model != nullptr;
+}
+
+std::shared_ptr<Model> Node::getModel() const
+{
+	return _model;
+}
+
 ///	Returns a node that is found with the name in parameter. For complex nodes (such as composites), it
 ///	theorically searches in children. In this base case, however, only the current node is checked.
 std::shared_ptr<Node> Node::find(std::string name)
@@ -76,4 +102,41 @@ std::shared_ptr<const Node> Node::find(std::string name) const
 		return shared_from_this();
 
 	return nullptr;
+}
+
+glm::vec3 Node::position() const
+{
+	return _position;
+}
+
+glm::quat Node::rotation() const
+{
+	return _rotation;
+}
+
+float Node::scale() const
+{
+	return _scale;
+}
+
+glm::mat4 Node::modelMatrix() const
+{
+	glm::mat4 result = glm::translate(glm::mat4(), _position);
+	result *= glm::mat4_cast(_rotation);
+	return glm::scale(result, glm::vec3(_scale));
+}
+
+void Node::setPosition(const glm::vec3& newPos)
+{
+	_position = newPos;
+}
+
+void Node::setRotation(const glm::quat& newRot)
+{
+	_rotation = newRot;
+}
+
+void Node::setScale(float newScale)
+{
+	_scale = newScale;
 }

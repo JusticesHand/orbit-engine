@@ -1,25 +1,29 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(location = 0) out vec3 fragColor;
+// Vertices
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec2 inUv;
+layout(location = 2) in vec3 inNormal;
+layout(location = 3) in vec4 inColor;
 
-out gl_PerVertex {
-	vec4 gl_Position;
-};
+// Instanced input
+layout(location = 4) in mat4 inModel;
 
-vec2 positions[3] = vec2[](
-	vec2(0.0, -0.5),
-	vec2(0.5, 0.5),
-	vec2(-0.5, 0.5)
-);
+// Uniform buffer
+layout(binding = 0) uniform UBO
+{
+	mat4 viewProjection;
+} ubo;
 
-vec3 colors[3] = vec3[](
-	vec3(1.0, 0.0, 0.0),
-	vec3(0.0, 1.0, 0.0),
-	vec3(0.0, 0.0, 1.0)
-);
+// Out
+layout(location = 0) out vec2 outUv;
+layout(location = 1) out vec3 outNormal;
+layout(location = 2) out vec4 outColor;
 
 void main() {
-	fragColor = colors[gl_VertexIndex];
-	gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+	gl_Position = ubo.viewProjection * inModel * vec4(inPosition, 1.0);
+	outUv = inUv;
+	outNormal = inNormal;
+	outColor = inColor;
 }

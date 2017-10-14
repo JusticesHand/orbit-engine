@@ -1,11 +1,13 @@
 #include "Game/CompositeTree/CompositeTree.h"
 
+
 using namespace Orbit;
 
 /// Constructor for the class. Sets the name of the node to 'ROOT_TREE_NODE'.
 CompositeTree::CompositeTree()
 	: CompositeNode("ROOT_TREE_NODE")
-{ 
+{
+	addChild(std::make_shared<CameraNode>());
 }
 
 /// Class's destructor is the default implementation.
@@ -34,4 +36,14 @@ std::shared_ptr<Node> CompositeTree::clone() const
 	std::shared_ptr<CompositeTree> newTree = std::make_shared<CompositeTree>();
 	newTree->moveChildren(cloneChildren());
 	return newTree;
+}
+
+std::shared_ptr<CameraNode> CompositeTree::getCamera()
+{
+	return std::dynamic_pointer_cast<CameraNode>(find("CAMERA"));
+}
+
+std::shared_ptr<const CameraNode> CompositeTree::getCamera() const
+{
+	return std::dynamic_pointer_cast<const CameraNode>(find("CAMERA"));
 }

@@ -4,6 +4,9 @@
 
 #include "Game/ModLibrary.h"
 
+#include <Input/Window.h>
+#include <Render/Renderer.h>
+
 #include <Input/Input.h>
 
 #include <Game/Scene.h>
@@ -35,6 +38,13 @@ void Game::initialize()
 	_mainModule = std::unique_ptr<MainModule>(getMainModule());
 	_mainModule->load();
 
+	// TEMP
+	glm::ivec2 windowSize = Input::getInput().windowSize();
+	_projection.setFoV(glm::radians(45.f));
+	_projection.setAspectRatio(windowSize.x / static_cast<float>(windowSize.y));
+	_projection.setZNear(0.1f);
+	_projection.setZFar(10.0f);
+
 	// Load up all the mods
 	std::ifstream moduleFile("mods.json");
 	nlohmann::json j;
@@ -54,6 +64,9 @@ void Game::initialize()
 		throw std::runtime_error("Main module did not contain an initial scene!");
 
 	loadScene(std::move(initialScene));
+
+	// Temporary test: register Spacebar to "Fire".
+	Input::getInput().registerVirtualKey("Fire", Key::Code::Space);
 }
 
 void Game::cleanup()
@@ -78,6 +91,20 @@ void Game::update(std::chrono::nanoseconds elapsedTime)
 	updateScene();
 
 	_tree->update(elapsedTime);
+
+	_tree->acceptVisitor(&_visitor);
+	if (_visitor.modelCountsChanged())
+		Window::getInstance().getRenderer()->loadModels(_visitor.modelCounts());
+
+	if (_tree->getCamera() == nullptr)
+		throw std::runtime_error("Scene has no camera to render!");
+
+	glm::mat4 view = _tree->getCamera()->getViewMatrix();
+	glm::mat4 projection = _projection.getMatrix();
+	Window::getInstance().getRenderer()->setupViewProjection(view, projection);
+	Window::getInstance().getRenderer()->queueRender(_visitor.treeState());
+
+	_visitor.flushModelCounts();
 }
 
 void Game::loadScene(std::unique_ptr<Scene> scene)
@@ -98,5 +125,6 @@ void Game::updateScene()
 	_currentScene = std::move(_nextScene);
 	_nextScene = nullptr;
 
+	_currentScene->loadFactories();
 	_currentScene->load(*_tree);
 }

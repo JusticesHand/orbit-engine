@@ -20,8 +20,6 @@
 
 namespace Orbit
 {
-	
-
 	class VulkanRenderer final : public Renderer
 	{
 	public:
@@ -34,9 +32,13 @@ namespace Orbit
 
 		void flagResize(const glm::ivec2& newSize) override;
 
-		void queueRender(const Model& model, const glm::mat4& transform) override;
+		void loadModels(const std::vector<ModelCountPair>& models) override;
 
-		void renderFrame() const override;
+		void setupViewProjection(const glm::mat4& view, const glm::mat4& projection) override;
+
+		void queueRender(const std::vector<ModelTransformsPair>& modelTransforms) override;
+
+		void renderFrame() override;
 
 		void waitDeviceIdle() override;
 
@@ -47,7 +49,8 @@ namespace Orbit
 		vk::DebugReportCallbackEXT createDebugCallback();
 		vk::SurfaceKHR createSurface(void* windowHandle);
 		vk::PhysicalDevice pickPhysicalDevice();
-		vk::Device createDevice();
+		vk::Device createDevice(); 
+		vk::CommandPool createCommandPool(int family);
 
 		void destroyDebugCallback();
 
@@ -62,6 +65,9 @@ namespace Orbit
 		vk::Queue _graphicsQueue;
 		vk::Queue _presentQueue;
 		vk::Queue _transferQueue;
+
+		vk::CommandPool _graphicsCommandPool;
+		vk::CommandPool _transferCommandPool;
 
 		VulkanGraphicsPipeline _pipeline;
 		VulkanModelRenderer _modelRenderer;

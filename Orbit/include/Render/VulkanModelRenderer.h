@@ -4,10 +4,21 @@
 #define RENDER_VULKANMODELRENDERER_H
 #pragma once
 
+#include <Render/Model.h>
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
+#include <vector>
+#include <unordered_map>
+
 #include "VulkanUtils.h"
+
+#include "Render/Renderer.h"
+
+#include "Render/VulkanMemoryBuffer.h"
 
 namespace Orbit
 {
@@ -19,28 +30,55 @@ namespace Orbit
 	public:
 		VulkanModelRenderer() = default;
 
-		void init(vk::Device device, const VulkanQueueFamilies& families, const VulkanGraphicsPipeline* const pipeline);
+		void init(
+			vk::PhysicalDevice physicalDevice,
+			vk::Device device,
+			const VulkanGraphicsPipeline& pipeline,
+			const vk::CommandPool& graphicsCommandPool,
+			const vk::CommandPool& transferCommandPool);
 
 		void recreateBuffers(const VulkanGraphicsPipeline* const newPipeline);
 
-		void prepareRender(const Model& model, const glm::mat4& transform);
+		void loadModels(const std::vector<Renderer::ModelCountPair>& models, vk::Queue transferQueue);
 
-		void renderFrame(vk::Queue graphicsQueue, vk::Queue presentQueue) const;
+		void setupViewProjection(const glm::mat4& viewProjectionTransform);
+
+		void updateTransforms(const std::vector<Renderer::ModelTransformsPair>& modelTransforms);
+
+		void renderFrame(vk::Queue graphicsQueue, vk::Queue presentQueue);
 
 		void cleanup();
 
 	private:
-		vk::CommandPool createCommandPool(int family);
 		std::vector<vk::CommandBuffer> createGraphicsCommandBuffers();
 		void recordCommandBuffers();
+		std::vector<vk::CommandBuffer> recordSecondaryBuffers(const vk::Framebuffer& framebuffer);
 
+		vk::PhysicalDevice _physicalDevice;
 		vk::Device _device;
-		VulkanQueueFamilies _families;
 		const VulkanGraphicsPipeline* _pipeline;
 
-		vk::CommandPool _graphicsCommandPool;
-		vk::CommandPool _transferCommandPool;
+		const vk::CommandPool* _graphicsCommandPool;
+		const vk::CommandPool* _transferCommandPool;
+
+		struct ModelData
+		{
+			std::weak_ptr<Model> weakModel;
+			size_t vertexIndex;
+			size_t indicesIndex;
+
+			size_t instanceIndex;
+			size_t instanceCount;
+		};
+
+		std::vector<ModelData> _modelData;
+
 		std::vector<vk::CommandBuffer> _graphicsCommandBuffers;
+		std::unordered_map<VkFramebuffer, std::vector<vk::CommandBuffer>> _secondaryBufferMap;
+
+		VulkanMemoryBuffer _mainBuffer;
+		VulkanMemoryBuffer _transformBuffer;
+		VulkanMemoryBuffer _animationBuffer;
 
 		vk::Semaphore _imageSemaphore;
 		vk::Semaphore _renderSemaphore;

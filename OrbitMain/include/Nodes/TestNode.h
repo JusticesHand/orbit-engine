@@ -11,7 +11,8 @@ namespace OrbitMain
 	class TestNode : public Orbit::Node
 	{
 	public:
-		explicit TestNode();
+		explicit TestNode(const std::shared_ptr<Orbit::Model>& model);
+		explicit TestNode(const std::string& name, const std::shared_ptr<Orbit::Model>& model);
 		virtual ~TestNode() = default;
 
 		TestNode(TestNode&& rhs);
@@ -20,7 +21,7 @@ namespace OrbitMain
 		TestNode(const TestNode&) = delete;
 		TestNode& operator=(const TestNode&) = delete;
 
-		void acceptVisitor(const Orbit::Visitor* visitor) override;
+		void acceptVisitor(Orbit::Visitor* visitor) override;
 
 		std::shared_ptr<Orbit::Node> clone() const override;
 

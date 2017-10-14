@@ -6,7 +6,7 @@ using namespace Orbit;
 
 Input Input::_instance;
 
-const Input& Input::getInput()
+Input& Input::getInput()
 {
 	return _instance;
 }
@@ -16,9 +16,13 @@ bool Input::keyPressed(const Key& key) const
 	return _keyStates[key.index()];
 }
 
-bool Input::mousePressed(const Mouse& button) const
+bool Input::keyPressed(const const_str& virtualKeyName) const
 {
-	return _mouseStates[button.index()];
+	std::pair<Key, bool> found = _virtualKeyMap.find(virtualKeyName);
+	if (!found.second)
+		return false;
+
+	return _keyStates[found.first.index()];
 }
 
 glm::ivec2 Input::mouseDelta() const
@@ -32,6 +36,11 @@ glm::ivec2 Input::windowSize() const
 	return _windowSize;
 }
 
+void Input::registerVirtualKey(const const_str& keyName, const Key& key)
+{
+	_virtualKeyMap[keyName] = key;
+}
+
 void Input::logKeyPress(const Key& key)
 {
 	_keyStates[key.index()] = true;
@@ -40,16 +49,6 @@ void Input::logKeyPress(const Key& key)
 void Input::logKeyRelease(const Key& key)
 {
 	_keyStates[key.index()] = false;
-}
-
-void Input::logMousePress(const Mouse& button)
-{
-	_mouseStates[button.index()] = true;
-}
-
-void Input::logMouseRelease(const Mouse& button)
-{
-	_mouseStates[button.index()] = false;
 }
 
 void Input::accumulateMouseMovement(const glm::ivec2& amount)

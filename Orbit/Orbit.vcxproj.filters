@@ -34,6 +34,12 @@
     <Filter Include="Resource Files\Shaders">
       <UniqueIdentifier>{25dfea80-734d-4daf-a2f7-399a1879098c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Visitors">
+      <UniqueIdentifier>{5dcdf848-9a8f-48de-bcda-8e0bfcf63b1b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Visitors">
+      <UniqueIdentifier>{0ead1a69-af68-477b-9ee2-ce59db35ef70}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Input\Window.h">
@@ -56,6 +62,15 @@
     </ClInclude>
     <ClInclude Include="include\Render\VulkanModelRenderer.h">
       <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Render\VulkanMemoryBuffer.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Render\VulkanImage.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Visitors\ModelVisitor.h">
+      <Filter>Header Files\Visitors</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -82,6 +97,15 @@
     </ClCompile>
     <ClCompile Include="src\Render\VulkanModelRenderer.cpp">
       <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\VulkanMemoryBuffer.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\VulkanImage.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Visitors\ModelVisitor.cpp">
+      <Filter>Source Files\Visitors</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

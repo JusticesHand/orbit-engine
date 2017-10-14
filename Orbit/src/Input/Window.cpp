@@ -23,7 +23,7 @@ using namespace Orbit;
 namespace
 {
 	Key getKey(int keyCode);
-	Mouse getMouse(int buttonCode);
+	Key getMouse(int keyCode);
 }
 
 /// The implementation of the window's static instance.
@@ -124,7 +124,7 @@ void Window::open()
 	_renderer = std::make_unique<RENDERER>();
 
 	glfwWindowHint(GLFW_CLIENT_API, static_cast<int>(_renderer->getAPI()));
-	//glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	_windowHandle = glfwCreateWindow(_width, _height, _title.c_str(), nullptr, nullptr);
 
@@ -140,8 +140,6 @@ void Window::open()
 
 	// Not-input callback setups.
 	glfwSetWindowSizeCallback(_windowHandle, [](GLFWwindow* windowHandle, int sizeX, int sizeY) {
-		std::cout << "RESIZED THE WINDOW" << std::endl;
-
 		glm::ivec2 newSize{ sizeX, sizeY };
 
 		Input::_instance.setWindowSize(newSize);
@@ -153,24 +151,18 @@ void Window::open()
 		Key key = getKey(keyCode);
 
 		if (action == GLFW_PRESS)
-		{
-			std::cout << "PRESSED " << key << std::endl;
 			Input::_instance.logKeyPress(key);
-		}
 		else if (action == GLFW_RELEASE)
-		{
-			std::cout << "RELEASED " << key << std::endl;
 			Input::_instance.logKeyRelease(key);
-		}
 	});
 
 	glfwSetMouseButtonCallback(_windowHandle, [](GLFWwindow*, int buttonCode, int action, int) {
-		Mouse button = getMouse(buttonCode);
+		Key button = getMouse(buttonCode);
 
 		if (action == GLFW_PRESS)
-			Input::_instance.logMousePress(button);
+			Input::_instance.logKeyPress(button);
 		else if (action == GLFW_RELEASE)
-			Input::_instance.logMouseRelease(button);
+			Input::_instance.logKeyPress(button);
 	});
 
 	glfwSetCursorPosCallback(_windowHandle, [](GLFWwindow*, double posX, double posY) {
@@ -392,17 +384,17 @@ namespace
 		}
 	}
 
-	Mouse getMouse(int buttonCode)
+	Key getMouse(int buttonCode)
 	{
 		switch (buttonCode)
 		{
-		case GLFW_MOUSE_BUTTON_1: return Mouse::Code::Mouse1;
-		case GLFW_MOUSE_BUTTON_2: return Mouse::Code::Mouse2;
-		case GLFW_MOUSE_BUTTON_3: return Mouse::Code::Mouse3;
-		case GLFW_MOUSE_BUTTON_4: return Mouse::Code::Mouse4;
-		case GLFW_MOUSE_BUTTON_5: return Mouse::Code::Mouse5;
+		case GLFW_MOUSE_BUTTON_1: return Key::Code::Mouse1;
+		case GLFW_MOUSE_BUTTON_2: return Key::Code::Mouse2;
+		case GLFW_MOUSE_BUTTON_3: return Key::Code::Mouse3;
+		case GLFW_MOUSE_BUTTON_4: return Key::Code::Mouse4;
+		case GLFW_MOUSE_BUTTON_5: return Key::Code::Mouse5;
 
-		default: return Mouse::Code::None;
+		default: return Key::Code::None;
 		}
 	}
 }

@@ -31,7 +31,7 @@ CompositeNode& CompositeNode::operator=(CompositeNode&& rhs)
 /// Implements the visitor pattern for the class. Simply iterates through children and makes them accept the
 /// visitor. It's meant to be called as a final operation of visitor accepting for child classes.
 /// @param visitor a pointer to the used visitor.
-void CompositeNode::acceptVisitor(const Visitor* visitor)
+void CompositeNode::acceptVisitor(Visitor* visitor)
 {
 	for (std::shared_ptr<Node>& child : _children)
 		child->acceptVisitor(visitor);

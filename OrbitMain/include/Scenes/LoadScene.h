@@ -14,7 +14,7 @@ namespace OrbitMain
 		LoadScene() = default;
 		virtual ~LoadScene() = default;
 
-		void registerFactories() override;
+		void loadFactories() override;
 		void load(Orbit::CompositeTree& tree) override;
 		void unload() override;
 	};

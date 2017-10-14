@@ -2,15 +2,22 @@
 
 #include "Nodes/TestNode.h"
 
-#include "Input/Input.h"
+#include <Game/CompositeTree/Visitor.h>
+#include <Input/Input.h>
 
 #include <iostream>
 
 using namespace OrbitMain;
+using namespace Orbit;
 
-TestNode::TestNode()
-	: Node("TestNode")
+TestNode::TestNode(const std::shared_ptr<Model>& model)
+	: TestNode("TestNode", model)
 { 
+}
+
+TestNode::TestNode(const std::string& name, const std::shared_ptr<Model>& model)
+	: Node(name, model)
+{
 }
 
 TestNode::TestNode(TestNode&& rhs)
@@ -24,15 +31,14 @@ TestNode& TestNode::operator=(TestNode&& rhs)
 	return *this;
 }
 
-void TestNode::acceptVisitor(const Orbit::Visitor* visitor)
+void TestNode::acceptVisitor(Orbit::Visitor* visitor)
 {
-	// TODO
-	//visitor->visitElement(this);
+	visitor->visitElement(this);
 }
 
 std::shared_ptr<Orbit::Node> TestNode::clone() const
 {
-	return std::make_shared<TestNode>();
+	return std::make_shared<TestNode>(getModel());
 }
 
 void TestNode::update(std::chrono::nanoseconds elapsedTime)
@@ -46,12 +52,17 @@ void TestNode::update(std::chrono::nanoseconds elapsedTime)
 		std::cout << "A second has passed." << std::endl;
 	}
 
-	if (Orbit::Input::getInput().keyPressed(Orbit::Key::Code::A))
+	if (Input::getInput().keyPressed(Orbit::Key::Code::A))
 	{
 		std::cout << "Hi I pressed the A button" << std::endl;
 	}
 
-	glm::ivec2 mouseDelta = Orbit::Input::getInput().mouseDelta();
+	if (Input::getInput().keyPressed("Fire"))
+	{
+		std::cout << "Pew pew - virtual fire button enabled" << std::endl;
+	}
+
+	glm::ivec2 mouseDelta = Input::getInput().mouseDelta();
 	if (mouseDelta.x != 0 && mouseDelta.y != 0)
 	{
 		std::cout << "MOVED THE MOUSE: " << mouseDelta.x << "," << mouseDelta.y << std::endl;

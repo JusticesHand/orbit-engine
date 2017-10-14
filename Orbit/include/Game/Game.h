@@ -9,6 +9,9 @@
 #include <memory>
 #include <stack>
 
+#include "Visitors/ModelVisitor.h"
+#include <Render/Projection.h>
+
 namespace Orbit
 {
 	class Scene;
@@ -42,6 +45,10 @@ namespace Orbit
 
 		std::unique_ptr<MainModule> _mainModule;
 		std::stack<std::unique_ptr<ModLibrary>> _modStack;
+
+		Projection _projection{ Projection::Type::Perspective };
+
+		ModelVisitor _visitor;
 
 		void loadScene(std::unique_ptr<Scene> scene);
 

@@ -115,21 +115,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Game\CompositeTree\CameraNode.cpp" />
     <ClCompile Include="src\Game\CompositeTree\CompositeNode.cpp" />
     <ClCompile Include="src\Game\CompositeTree\CompositeTree.cpp" />
     <ClCompile Include="src\Game\CompositeTree\Node.cpp" />
+    <ClCompile Include="src\Game\Scene.cpp" />
     <ClCompile Include="src\Input\Input.cpp" />
+    <ClCompile Include="src\Render\Model.cpp" />
+    <ClCompile Include="src\Render\Projection.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Game\CompositeTree\CameraNode.h" />
     <ClInclude Include="include\Game\CompositeTree\CompositeNode.h" />
     <ClInclude Include="include\Game\CompositeTree\CompositeTree.h" />
     <ClInclude Include="include\Game\CompositeTree\Node.h" />
+    <ClInclude Include="include\Game\CompositeTree\Visitor.h" />
+    <ClInclude Include="include\Game\Factories\NodeFactory.h" />
     <ClInclude Include="include\Game\MainModule.h" />
     <ClInclude Include="include\Game\Mod.h" />
     <ClInclude Include="include\Game\Scene.h" />
     <ClInclude Include="include\Input\Input.h" />
     <ClInclude Include="include\Input\Key.h" />
-    <ClInclude Include="include\Input\Mouse.h" />
+    <ClInclude Include="include\Render\Model.h" />
+    <ClInclude Include="include\Render\Projection.h" />
     <ClInclude Include="include\Render\Renderer.h" />
     <ClInclude Include="include\Util.h" />
   </ItemGroup>

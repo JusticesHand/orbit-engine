@@ -34,6 +34,12 @@
     <Filter Include="Header Files\Render">
       <UniqueIdentifier>{37681f31-adaa-4820-b94a-00f1019737f9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Render">
+      <UniqueIdentifier>{0ca8af96-b3c4-413d-b248-37914edd4a1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Game\Factories">
+      <UniqueIdentifier>{6a436f57-b7f2-4512-ad00-88197d495a32}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Game\CompositeTree\CompositeNode.cpp">
@@ -47,6 +53,18 @@
     </ClCompile>
     <ClCompile Include="src\Input\Input.cpp">
       <Filter>Source Files\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Model.cpp">
+      <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Game\Scene.cpp">
+      <Filter>Source Files\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Game\CompositeTree\CameraNode.cpp">
+      <Filter>Source Files\Game\CompositeTree</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\Projection.cpp">
+      <Filter>Source Files\Render</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -77,11 +95,23 @@
     <ClInclude Include="include\Input\Key.h">
       <Filter>Header Files\Input</Filter>
     </ClInclude>
-    <ClInclude Include="include\Input\Mouse.h">
-      <Filter>Header Files\Input</Filter>
-    </ClInclude>
     <ClInclude Include="include\Render\Renderer.h">
       <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Render\Model.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Game\Factories\NodeFactory.h">
+      <Filter>Header Files\Game\Factories</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Game\CompositeTree\CameraNode.h">
+      <Filter>Header Files\Game\CompositeTree</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Render\Projection.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Game\CompositeTree\Visitor.h">
+      <Filter>Header Files\Game\CompositeTree</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

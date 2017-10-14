@@ -2,6 +2,8 @@
 
 #include "Render/VulkanGraphicsPipeline.h"
 
+#include <Render/Model.h>
+
 #include <Util.h>
 
 using namespace Orbit;
@@ -11,7 +13,7 @@ void VulkanGraphicsPipeline::init(
 	vk::PhysicalDevice physicalDevice, 
 	vk::Device device, 
 	vk::SurfaceKHR surface, 
-	VulkanQueueFamilies families)
+	vk::CommandPool transferPool)
 {
 	_physicalDevice = physicalDevice;
 	_device = device;
@@ -29,7 +31,32 @@ void VulkanGraphicsPipeline::init(
 	for (const vk::Image& image : _swapchainImages)
 		_swapchainImageViews.push_back(createImageView(_device, image, _surfaceFormat.format));
 
+	vk::ImageCreateInfo depthImageCreateInfo;
+	depthImageCreateInfo
+		.setImageType(vk::ImageType::e2D)
+		.setExtent({ _swapExtent.width, _swapExtent.height, 1 })
+		.setMipLevels(1)
+		.setArrayLayers(1)
+		.setFormat(vk::Format::eD32Sfloat)
+		.setTiling(vk::ImageTiling::eOptimal)
+		.setInitialLayout(vk::ImageLayout::eUndefined)
+		.setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
+		.setSamples(vk::SampleCountFlagBits::e1)
+		.setSharingMode(vk::SharingMode::eExclusive);
+
+	_depthImage = VulkanImage{
+		_physicalDevice,
+		_device,
+		depthImageCreateInfo,
+		vk::MemoryPropertyFlagBits::eDeviceLocal
+	};
+
+	_depthImage.transitionLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal, transferPool);
+
 	_renderPass = createRenderPass();
+	_descriptorSetLayout = createDescriptorSetLayout();
+	_descriptorPool = createDescriptorPool();
+	_descriptorSet = createDescriptorSet();
 	_pipelineLayout = createPipelineLayout();
 	_graphicsPipeline = createGraphicsPipeline();
 	_framebuffers = createFramebuffers();
@@ -84,6 +111,16 @@ vk::RenderPass VulkanGraphicsPipeline::getRenderPass() const
 	return _renderPass;
 }
 
+vk::DescriptorSet VulkanGraphicsPipeline::getDescriptorSet() const
+{
+	return _descriptorSet;
+}
+
+vk::PipelineLayout VulkanGraphicsPipeline::getPipelineLayout() const
+{
+	return _pipelineLayout;
+}
+
 vk::Pipeline VulkanGraphicsPipeline::getGraphicsPipeline() const
 {
 	return _graphicsPipeline;
@@ -100,7 +137,10 @@ void VulkanGraphicsPipeline::cleanup()
 		_device.destroyFramebuffer(framebuffer);
 	_framebuffers.clear();
 
+	_depthImage.clear();
 	_device.destroyPipeline(_graphicsPipeline);
+	_device.destroyDescriptorPool(_descriptorPool);
+	_device.destroyDescriptorSetLayout(_descriptorSetLayout);
 	_device.destroyPipelineLayout(_pipelineLayout);
 	_device.destroyRenderPass(_renderPass);
 
@@ -237,8 +277,8 @@ vk::SwapchainKHR VulkanGraphicsPipeline::createSwapchain(vk::SwapchainKHR oldSwa
 
 vk::RenderPass VulkanGraphicsPipeline::createRenderPass()
 {
-	vk::AttachmentDescription colorAttachment;
-	colorAttachment
+	std::array<vk::AttachmentDescription, 2> attachments;
+	attachments[0]
 		.setFormat(_surfaceFormat.format)
 		.setSamples(vk::SampleCountFlagBits::e1)
 		.setLoadOp(vk::AttachmentLoadOp::eClear)
@@ -253,6 +293,21 @@ vk::RenderPass VulkanGraphicsPipeline::createRenderPass()
 		.setAttachment(0)
 		.setLayout(vk::ImageLayout::eColorAttachmentOptimal);
 
+	attachments[1]
+		.setFormat(_depthImage.format())
+		.setSamples(vk::SampleCountFlagBits::e1)
+		.setLoadOp(vk::AttachmentLoadOp::eClear)
+		.setStoreOp(vk::AttachmentStoreOp::eDontCare)
+		.setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
+		.setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
+		.setInitialLayout(vk::ImageLayout::eUndefined)
+		.setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
+	vk::AttachmentReference depthAttachmentRef;
+	depthAttachmentRef
+		.setAttachment(1)
+		.setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+
 	vk::SubpassDependency dependency;
 	dependency
 		.setSrcSubpass(VK_SUBPASS_EXTERNAL)
@@ -265,12 +320,13 @@ vk::RenderPass VulkanGraphicsPipeline::createRenderPass()
 	subpass
 		.setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
 		.setColorAttachmentCount(1)
-		.setPColorAttachments(&colorAttachmentRef);
+		.setPColorAttachments(&colorAttachmentRef)
+		.setPDepthStencilAttachment(&depthAttachmentRef);
 
 	vk::RenderPassCreateInfo createInfo;
 	createInfo
-		.setAttachmentCount(1)
-		.setPAttachments(&colorAttachment)
+		.setAttachmentCount(static_cast<uint32_t>(attachments.size()))
+		.setPAttachments(attachments.data())
 		.setDependencyCount(1)
 		.setPDependencies(&dependency)
 		.setSubpassCount(1)
@@ -283,12 +339,53 @@ vk::PipelineLayout VulkanGraphicsPipeline::createPipelineLayout()
 {
 	vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo;
 	pipelineLayoutCreateInfo
-		.setSetLayoutCount(0)
-		.setPSetLayouts(nullptr)
+		.setSetLayoutCount(1)
+		.setPSetLayouts(&_descriptorSetLayout)
 		.setPushConstantRangeCount(0)
 		.setPPushConstantRanges(nullptr);
 
 	return _device.createPipelineLayout(pipelineLayoutCreateInfo);
+}
+
+vk::DescriptorSetLayout VulkanGraphicsPipeline::createDescriptorSetLayout()
+{
+	vk::DescriptorSetLayoutBinding layoutBinding;
+	layoutBinding
+		.setBinding(0)
+		.setDescriptorType(vk::DescriptorType::eUniformBuffer)
+		.setDescriptorCount(1)
+		.setStageFlags(vk::ShaderStageFlagBits::eVertex);
+
+	vk::DescriptorSetLayoutCreateInfo createInfo;
+	createInfo
+		.setBindingCount(1)
+		.setPBindings(&layoutBinding);
+
+	return _device.createDescriptorSetLayout(createInfo);
+}
+
+vk::DescriptorPool VulkanGraphicsPipeline::createDescriptorPool()
+{
+	vk::DescriptorPoolSize size{ vk::DescriptorType::eUniformBuffer, 1 };
+
+	vk::DescriptorPoolCreateInfo createInfo;
+	createInfo
+		.setPoolSizeCount(1)
+		.setPPoolSizes(&size)
+		.setMaxSets(1);
+
+	return _device.createDescriptorPool(createInfo);
+}
+
+vk::DescriptorSet VulkanGraphicsPipeline::createDescriptorSet()
+{
+	vk::DescriptorSetAllocateInfo allocInfo;
+	allocInfo
+		.setDescriptorPool(_descriptorPool)
+		.setDescriptorSetCount(1)
+		.setPSetLayouts(&_descriptorSetLayout);
+
+	return _device.allocateDescriptorSets(allocInfo)[0];
 }
 
 vk::Pipeline VulkanGraphicsPipeline::createGraphicsPipeline(vk::Pipeline oldPipeline)
@@ -322,10 +419,73 @@ vk::Pipeline VulkanGraphicsPipeline::createGraphicsPipeline(vk::Pipeline oldPipe
 		.setModule(fragmentShaderModule)
 		.setPName("main");
 
+	std::array<vk::VertexInputBindingDescription, 2> vertexInputBindingDescriptions;
+	vertexInputBindingDescriptions[0]
+		.setBinding(0)
+		.setInputRate(vk::VertexInputRate::eVertex)
+		.setStride(static_cast<uint32_t>(Vertex::size()));
+
+	vertexInputBindingDescriptions[1]
+		.setBinding(1)
+		.setInputRate(vk::VertexInputRate::eInstance)
+		.setStride(static_cast<uint32_t>(sizeof(glm::mat4)));
+
+	std::array<vk::VertexInputAttributeDescription, 8> vertexInputAttributes;
+	vertexInputAttributes[0]
+		.setBinding(0)
+		.setLocation(0)
+		.setFormat(vk::Format::eR32G32B32Sfloat)
+		.setOffset(static_cast<uint32_t>(Vertex::posOffset()));
+
+	vertexInputAttributes[1]
+		.setBinding(0)
+		.setLocation(1)
+		.setFormat(vk::Format::eR32G32Sfloat)
+		.setOffset(static_cast<uint32_t>(Vertex::uvOffset()));
+
+	vertexInputAttributes[2]
+		.setBinding(0)
+		.setLocation(2)
+		.setFormat(vk::Format::eR32G32B32Sfloat)
+		.setOffset(static_cast<uint32_t>(Vertex::normalOffset()));
+
+	vertexInputAttributes[3]
+		.setBinding(0)
+		.setLocation(3)
+		.setFormat(vk::Format::eR32G32B32A32Sfloat)
+		.setOffset(static_cast<uint32_t>(Vertex::colorOffset()));
+
+	// A mat4 input variable in glsl is considered to be four column vectors that take locations i, i+1, i+2 and i+3.
+	vertexInputAttributes[4]
+		.setBinding(1)
+		.setLocation(4)
+		.setFormat(vk::Format::eR32G32B32A32Sfloat)
+		.setOffset(0U);
+
+	vertexInputAttributes[5]
+		.setBinding(1)
+		.setLocation(5)
+		.setFormat(vk::Format::eR32G32B32A32Sfloat)
+		.setOffset(static_cast<uint32_t>(sizeof(glm::vec4)));
+
+	vertexInputAttributes[6]
+		.setBinding(1)
+		.setLocation(6)
+		.setFormat(vk::Format::eR32G32B32A32Sfloat)
+		.setOffset(2 * static_cast<uint32_t>(sizeof(glm::vec4)));
+
+	vertexInputAttributes[7]
+		.setBinding(1)
+		.setLocation(7)
+		.setFormat(vk::Format::eR32G32B32A32Sfloat)
+		.setOffset(3 * static_cast<uint32_t>(sizeof(glm::vec4)));
+
 	vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
 	vertexInputInfo
-		.setVertexBindingDescriptionCount(0)
-		.setVertexAttributeDescriptionCount(0);
+		.setVertexBindingDescriptionCount(static_cast<uint32_t>(vertexInputBindingDescriptions.size()))
+		.setPVertexBindingDescriptions(vertexInputBindingDescriptions.data())
+		.setVertexAttributeDescriptionCount(static_cast<uint32_t>(vertexInputAttributes.size()))
+		.setPVertexAttributeDescriptions(vertexInputAttributes.data());
 
 	vk::PipelineInputAssemblyStateCreateInfo inputAssembly;
 	inputAssembly
@@ -358,7 +518,7 @@ vk::Pipeline VulkanGraphicsPipeline::createGraphicsPipeline(vk::Pipeline oldPipe
 		.setPolygonMode(vk::PolygonMode::eFill)
 		.setLineWidth(1.f)
 		.setCullMode(vk::CullModeFlagBits::eBack)
-		.setFrontFace(vk::FrontFace::eClockwise)
+		.setFrontFace(vk::FrontFace::eCounterClockwise)
 		.setDepthBiasEnable(VK_FALSE);
 
 	vk::PipelineMultisampleStateCreateInfo multisampling;
@@ -366,8 +526,11 @@ vk::Pipeline VulkanGraphicsPipeline::createGraphicsPipeline(vk::Pipeline oldPipe
 		.setSampleShadingEnable(VK_FALSE)
 		.setRasterizationSamples(vk::SampleCountFlagBits::e1);
 
-	// TODO
 	vk::PipelineDepthStencilStateCreateInfo depthStencil;
+	depthStencil
+		.setDepthTestEnable(VK_TRUE)
+		.setDepthWriteEnable(VK_TRUE)
+		.setDepthCompareOp(vk::CompareOp::eLess);
 
 	vk::PipelineColorBlendAttachmentState colorBlendAttachment;
 	colorBlendAttachment
@@ -405,9 +568,9 @@ vk::Pipeline VulkanGraphicsPipeline::createGraphicsPipeline(vk::Pipeline oldPipe
 		.setPViewportState(&viewportState)
 		.setPRasterizationState(&rasterizer)
 		.setPMultisampleState(&multisampling)
-		.setPDepthStencilState(nullptr)	// TODO
+		.setPDepthStencilState(&depthStencil)
 		.setPColorBlendState(&colorBlending)
-		.setPDynamicState(nullptr)	// TODO
+		.setPDynamicState(nullptr)
 		.setLayout(_pipelineLayout)
 		.setRenderPass(_renderPass)
 		.setSubpass(0)
@@ -430,7 +593,7 @@ std::vector<vk::Framebuffer> VulkanGraphicsPipeline::createFramebuffers()
 
 	for (const vk::ImageView& imageView : _swapchainImageViews)
 	{
-		std::array<vk::ImageView, 1> attachments = { imageView };
+		std::array<vk::ImageView, 2> attachments = { imageView, _depthImage.imageView() };
 
 		vk::FramebufferCreateInfo createInfo;
 		createInfo

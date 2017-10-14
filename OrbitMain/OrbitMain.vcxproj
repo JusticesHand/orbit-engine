@@ -121,14 +121,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\Factories\TestNodeFactory.cpp" />
     <ClCompile Include="src\Nodes\TestNode.cpp" />
+    <ClCompile Include="src\Nodes\TestNode2.cpp" />
     <ClCompile Include="src\OrbitMainModule.cpp" />
     <ClCompile Include="src\Scenes\LoadScene.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\Factories\TestNode2Factory.h" />
+    <ClInclude Include="include\Factories\TestNodeFactory.h" />
     <ClInclude Include="include\Nodes\TestNode.h" />
+    <ClInclude Include="include\Nodes\TestNode2.h" />
     <ClInclude Include="include\OrbitMainModule.h" />
     <ClInclude Include="include\Scenes\LoadScene.h" />
+    <ClCompile Include="src\Factories\TestNode2Factory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OrbitCore\OrbitCore.vcxproj">

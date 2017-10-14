@@ -5,6 +5,8 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <memory>
+#include <vector>
 
 namespace Orbit
 {
@@ -23,9 +25,15 @@ namespace Orbit
 
 		virtual void flagResize(const glm::ivec2& newSize) = 0;
 
-		virtual void queueRender(const Model& model, const glm::mat4& transform) = 0;
+		using ModelCountPair = std::pair<std::shared_ptr<Model>, size_t>;
+		virtual void loadModels(const std::vector<ModelCountPair>& modelCounts) = 0;
 
-		virtual void renderFrame() const = 0;
+		virtual void setupViewProjection(const glm::mat4& view, const glm::mat4& projection) = 0;
+
+		using ModelTransformsPair = std::pair<std::shared_ptr<Model>, std::vector<glm::mat4>>;
+		virtual void queueRender(const std::vector<ModelTransformsPair>& modelTransforms) = 0;
+
+		virtual void renderFrame() = 0;
 
 		virtual void waitDeviceIdle() = 0;
 	};

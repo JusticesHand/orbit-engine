@@ -7,6 +7,8 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
+#include "VulkanImage.h"
+
 #include "VulkanUtils.h"
 
 namespace Orbit
@@ -21,7 +23,7 @@ namespace Orbit
 			vk::PhysicalDevice physicalDevice, 
 			vk::Device device, 
 			vk::SurfaceKHR surface, 
-			VulkanQueueFamilies families);
+			vk::CommandPool transferPool);
 
 		void resize(const glm::ivec2& newSize);
 
@@ -30,6 +32,10 @@ namespace Orbit
 		vk::Extent2D getSwapExtent() const;
 
 		vk::RenderPass getRenderPass() const;
+
+		vk::DescriptorSet getDescriptorSet() const;
+
+		vk::PipelineLayout getPipelineLayout() const;
 
 		vk::Pipeline getGraphicsPipeline() const;
 
@@ -50,6 +56,9 @@ namespace Orbit
 
 		vk::RenderPass createRenderPass();
 		vk::PipelineLayout createPipelineLayout();
+		vk::DescriptorSetLayout createDescriptorSetLayout();
+		vk::DescriptorPool createDescriptorPool();
+		vk::DescriptorSet createDescriptorSet();
 		vk::Pipeline createGraphicsPipeline(vk::Pipeline oldPipeline = nullptr);
 		std::vector<vk::Framebuffer> createFramebuffers();
 
@@ -64,7 +73,12 @@ namespace Orbit
 
 		vk::RenderPass _renderPass;
 		vk::PipelineLayout _pipelineLayout;
+		vk::DescriptorSetLayout _descriptorSetLayout;
+		vk::DescriptorPool _descriptorPool;
+		vk::DescriptorSet _descriptorSet;
 		vk::Pipeline _graphicsPipeline;
+
+		VulkanImage _depthImage;
 	};
 }
 

@@ -60,8 +60,11 @@ void VulkanRenderer::init(void* windowHandle, const glm::ivec2& windowSize)
 	_presentQueue = _device.getQueue(queueFamilies.presentQueueFamily, 0);
 	_transferQueue = _device.getQueue(queueFamilies.transferQueueFamily, 0);
 
-	_pipeline.init(windowSize, _physicalDevice, _device, _surface, queueFamilies);
-	_modelRenderer.init(_device, queueFamilies, &_pipeline);
+	_graphicsCommandPool = createCommandPool(queueFamilies.graphicsQueueFamily);
+	_transferCommandPool = createCommandPool(queueFamilies.transferQueueFamily);
+
+	_pipeline.init(windowSize, _physicalDevice, _device, _surface, _transferCommandPool);
+	_modelRenderer.init(_physicalDevice, _device, _pipeline, _graphicsCommandPool, _transferCommandPool);
 }
 
 RendererAPI VulkanRenderer::getAPI() const
@@ -76,12 +79,25 @@ void VulkanRenderer::flagResize(const glm::ivec2& newSize)
 	_modelRenderer.recreateBuffers(&_pipeline);
 }
 
-void VulkanRenderer::queueRender(const Model& model, const glm::mat4& transform)
+void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)
 {
-	_modelRenderer.prepareRender(model, transform);
+	_modelRenderer.loadModels(models, _transferQueue);
 }
 
-void VulkanRenderer::renderFrame() const
+void VulkanRenderer::setupViewProjection(const glm::mat4& view, const glm::mat4& projection)
+{
+	// Flip the middle y coordinate to flip the matrix around (since vulkan is flipped on that coordinate vs OGL).
+	glm::mat4 flippedProjection = projection;
+	flippedProjection[1][1] *= -1;
+	_modelRenderer.setupViewProjection(flippedProjection * view);
+}
+
+void VulkanRenderer::queueRender(const std::vector<ModelTransformsPair>& modelTransforms)
+{
+	_modelRenderer.updateTransforms(modelTransforms);
+}
+
+void VulkanRenderer::renderFrame()
 {
 	_modelRenderer.renderFrame(_graphicsQueue, _presentQueue);
 }
@@ -97,6 +113,9 @@ void VulkanRenderer::cleanup()
 
 	_modelRenderer.cleanup();
 	_pipeline.cleanup();
+
+	_device.destroyCommandPool(_transferCommandPool);
+	_device.destroyCommandPool(_graphicsCommandPool);
 
 	_device.destroy();
 	
@@ -252,11 +271,11 @@ vk::Device VulkanRenderer::createDevice()
 		throw std::runtime_error("The physical device was not chosen before attempting to create a logical device!");
 
 	VulkanQueueFamilies queueFamilies = getQueueFamilies(_physicalDevice, _surface);
-	std::set<int> uniqueQueues{ queueFamilies.graphicsQueueFamily, queueFamilies.presentQueueFamily, queueFamilies.transferQueueFamily };
+	std::set<uint32_t> uniqueQueues{ queueFamilies.graphicsQueueFamily, queueFamilies.presentQueueFamily, queueFamilies.transferQueueFamily };
 	std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
 	queueCreateInfos.reserve(uniqueQueues.size());
 
-	for (int queueFamily : uniqueQueues)
+	for (uint32_t queueFamily : uniqueQueues)
 	{
 		const float queuePriority = 1.0f;
 
@@ -282,6 +301,16 @@ vk::Device VulkanRenderer::createDevice()
 		.setPpEnabledLayerNames(VALIDATION_LAYERS.data());
 
 	return _physicalDevice.createDevice(createInfo);
+}
+
+vk::CommandPool VulkanRenderer::createCommandPool(int family)
+{
+	vk::CommandPoolCreateInfo createInfo;
+	createInfo
+		.setQueueFamilyIndex(family)
+		.setFlags(vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
+
+	return _device.createCommandPool(createInfo);
 }
 
 void VulkanRenderer::destroyDebugCallback()

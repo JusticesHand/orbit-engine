@@ -14,8 +14,6 @@ int main(int argc, char* argv[])
 	// TODO: Handle args, etc etc
 	try
 	{
-		Game::getInstance().initialize();
-
 		// TODO: Initialization with options.
 		Window::createWindow(1280, 720, "Hello World");
 
@@ -23,6 +21,9 @@ int main(int argc, char* argv[])
 		Window::getInstance().setTargetTicksPerSecond(120);
 
 		Window::getInstance().open();
+
+		Game::getInstance().initialize();
+
 		Window::getInstance().run([](std::chrono::nanoseconds time)
 		{
 			Game::getInstance().update(time);

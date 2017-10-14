@@ -5,6 +5,7 @@
 #pragma once
 
 #include "CompositeNode.h"
+#include "CameraNode.h"
 
 #include "Util.h"
 
@@ -36,6 +37,10 @@ namespace Orbit
 		/// on every child node.
 		/// @return a copy of this tree.
 		ORBIT_CORE_API std::shared_ptr<Node> clone() const override;
+
+		ORBIT_CORE_API std::shared_ptr<CameraNode> getCamera();
+
+		ORBIT_CORE_API std::shared_ptr<const CameraNode> getCamera() const;
 	};
 }
 

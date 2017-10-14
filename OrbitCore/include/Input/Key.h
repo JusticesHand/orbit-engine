@@ -24,10 +24,14 @@ namespace Orbit
 			Tilde, N1, N2, N3, N4, N5, N6, N7, N8, N9, N0, Minus, Equal,
 			Tab, CapsLock, LShift, LCtrl, LSuper, LAlt, RShift, RCtrl, RAlt, RSuper, Space,
 			Backspace, Return, Backslash, Slash, Period, Comma, Semicolon, Apostrophe,
-			LeftBracket, RightBracket
+			LeftBracket, RightBracket,
+
+			Mouse1, Mouse2, Mouse3, Mouse4, Mouse5
 		};
 
 		constexpr static size_t count() { return names.size(); }
+
+		constexpr Key() : Key(Code::None) { }
 
 		constexpr Key(const Code& code) : _code(code) { }
 
@@ -85,9 +89,23 @@ namespace Orbit
 			"Tilde", "N1", "N2", "N3", "N4", "N5", "N6", "N7", "N8", "N9", "N0", "Minus", "Equal",
 			"Tab", "CapsLock", "LShift", "LCtrl", "LSuper", "LAlt", "RShift", "RCtrl", "RAlt", "RSuper", "Space",
 			"Backspace", "Return", "Backslash", "Slash", "Period", "Comma", "Semicolon", "Apostrophe",
-			"LeftBracket", "RightBracket");
+			"LeftBracket", "RightBracket",
+			
+			"Mouse1", "Mouse2", "Mouse3", "Mouse4", "Mouse5");
 
 		Code _code = Code::None;
+	};
+}
+
+namespace std
+{
+	template<>
+	struct hash<Orbit::Key>
+	{
+		size_t operator()(const Orbit::Key& value) const
+		{
+			return std::hash<Orbit::Key::Code>()(value.getCode());
+		}
 	};
 }
 
