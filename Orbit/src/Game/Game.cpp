@@ -5,7 +5,7 @@
 #include "Game/ModLibrary.h"
 
 #include <Input/Window.h>
-#include <Render/Renderer.h>
+#include "Render/Renderer.h"
 
 #include <Input/Input.h>
 
@@ -86,7 +86,7 @@ void Game::cleanup()
 void Game::update(std::chrono::nanoseconds elapsedTime)
 {
 	// Lock the mouse movement for the current frame.
-	Input::_instance.lockMouseMovement();
+	Input::getInput().lockMouseMovement();
 
 	updateScene();
 

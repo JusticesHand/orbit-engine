@@ -17,11 +17,17 @@ CameraNode::~CameraNode() = default;
 CameraNode::CameraNode(CameraNode&& rhs)
 	: Node(std::move(rhs))
 {
+	_direction = rhs._direction;
+	_up = rhs._up;
 }
 
 CameraNode& CameraNode::operator=(CameraNode&& rhs)
 {
 	Node::operator=(std::move(rhs));
+
+	_direction = rhs._direction;
+	_up = rhs._up;
+
 	return *this;
 }
 

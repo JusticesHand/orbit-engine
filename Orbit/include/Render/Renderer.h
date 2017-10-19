@@ -13,6 +13,9 @@ namespace Orbit
 	class Model;
 	enum class RendererAPI : int;
 
+	/*!
+	@brief Renderer base class for the 
+	*/
 	class Renderer
 	{
 	public:

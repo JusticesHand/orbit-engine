@@ -12,7 +12,7 @@ using namespace Orbit;
 
 TestNode::TestNode(const std::shared_ptr<Model>& model)
 	: TestNode("TestNode", model)
-{ 
+{
 }
 
 TestNode::TestNode(const std::string& name, const std::shared_ptr<Model>& model)

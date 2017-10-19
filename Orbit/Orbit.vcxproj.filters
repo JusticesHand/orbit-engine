@@ -72,6 +72,9 @@
     <ClInclude Include="include\Visitors\ModelVisitor.h">
       <Filter>Header Files\Visitors</Filter>
     </ClInclude>
+    <ClInclude Include="include\Render\Renderer.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

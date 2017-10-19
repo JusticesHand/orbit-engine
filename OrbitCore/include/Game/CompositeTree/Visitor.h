@@ -10,12 +10,26 @@ namespace Orbit
 {
 	class Node;
 
+	/*!
+	@brief Base class implementing the Visitor design pattern.
+	*/
 	class Visitor
 	{
 	public:
+		/*!
+		@brief Default constructor for the class.
+		*/
 		Visitor() = default;
+		
+		/*!
+		@brief Default destructor for the class.
+		*/
 		virtual ~Visitor() = 0;
 
+		/*!
+		@brief Main chunk of the visitor pattern.
+		@param node The node to visit.
+		*/
 		virtual void visitElement(Node* node) = 0;
 	};
 

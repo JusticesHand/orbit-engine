@@ -14,6 +14,7 @@
     <ClInclude Include="include\Game\Game.h" />
     <ClInclude Include="include\Game\ModLibrary.h" />
     <ClInclude Include="include\Input\Window.h" />
+    <ClInclude Include="include\Render\Renderer.h" />
     <ClInclude Include="include\Render\VulkanGraphicsPipeline.h" />
     <ClInclude Include="include\Render\VulkanImage.h" />
     <ClInclude Include="include\Render\VulkanMemoryBuffer.h" />

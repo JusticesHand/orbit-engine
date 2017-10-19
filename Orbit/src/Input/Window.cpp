@@ -3,14 +3,14 @@
 #include "Input/Window.h"
 #include "Input/Input.h"
 
-#include <Render/Renderer.h>
+#include "Render/Renderer.h"
 
 #if defined(USE_OPENGL)
 #include "Render/OpenGLRenderer.h"
 #elif defined(USE_DIRECTX)
 #include "Render/DirectXRenderer.h"
 #else
-// The vulkan renderer, being cross-platform and blazing fast, is the safest choice.
+// The vulkan renderer, being cross-platform and blazing fast (as well as most maintained here), is the safest choice.
 #include "Render/VulkanRenderer.h"
 #endif
 
@@ -134,7 +134,7 @@ void Window::open()
 	glfwGetWindowSize(_windowHandle, &sizeX, &sizeY);
 
 	glm::ivec2 windowSize = { sizeX, sizeY };
-	Input::_instance.setWindowSize(windowSize);
+	Input::getInput().setWindowSize(windowSize);
 
 	_renderer->init(_windowHandle, windowSize);
 
@@ -142,7 +142,7 @@ void Window::open()
 	glfwSetWindowSizeCallback(_windowHandle, [](GLFWwindow* windowHandle, int sizeX, int sizeY) {
 		glm::ivec2 newSize{ sizeX, sizeY };
 
-		Input::_instance.setWindowSize(newSize);
+		Input::getInput().setWindowSize(newSize);
 		Window::getInstance().getRenderer()->flagResize(newSize);
 	});
 
@@ -151,18 +151,18 @@ void Window::open()
 		Key key = getKey(keyCode);
 
 		if (action == GLFW_PRESS)
-			Input::_instance.logKeyPress(key);
+			Input::getInput().logKeyPress(key);
 		else if (action == GLFW_RELEASE)
-			Input::_instance.logKeyRelease(key);
+			Input::getInput().logKeyRelease(key);
 	});
 
 	glfwSetMouseButtonCallback(_windowHandle, [](GLFWwindow*, int buttonCode, int action, int) {
 		Key button = getMouse(buttonCode);
 
 		if (action == GLFW_PRESS)
-			Input::_instance.logKeyPress(button);
+			Input::getInput().logKeyPress(button);
 		else if (action == GLFW_RELEASE)
-			Input::_instance.logKeyPress(button);
+			Input::getInput().logKeyPress(button);
 	});
 
 	glfwSetCursorPosCallback(_windowHandle, [](GLFWwindow*, double posX, double posY) {
@@ -174,7 +174,7 @@ void Window::open()
 		lastX = static_cast<int>(posX);
 		lastY = static_cast<int>(posY);
 
-		Input::_instance.accumulateMouseMovement({ deltaX, deltaY });
+		Input::getInput().accumulateMouseMovement({ deltaX, deltaY });
 	});
 }
 

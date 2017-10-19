@@ -27,7 +27,6 @@ void LoadScene::loadFactories()
 		{{-0.5, -0.5, 0}, {0, 0}, {0, 0, 0}, {1, 0, 0, 1}}
 	});
 
-	storeModel(model1);
 	storeFactory<TestNode>(std::make_unique<TestNodeFactory>(model1));
 	storeFactory<TestNode2>(std::make_unique<TestNode2Factory>(model1));
 }

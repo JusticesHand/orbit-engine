@@ -57,9 +57,6 @@
     <ClCompile Include="src\Render\Model.cpp">
       <Filter>Source Files\Render</Filter>
     </ClCompile>
-    <ClCompile Include="src\Game\Scene.cpp">
-      <Filter>Source Files\Game</Filter>
-    </ClCompile>
     <ClCompile Include="src\Game\CompositeTree\CameraNode.cpp">
       <Filter>Source Files\Game\CompositeTree</Filter>
     </ClCompile>
@@ -94,9 +91,6 @@
     </ClInclude>
     <ClInclude Include="include\Input\Key.h">
       <Filter>Header Files\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="include\Render\Renderer.h">
-      <Filter>Header Files\Render</Filter>
     </ClInclude>
     <ClInclude Include="include\Render\Model.h">
       <Filter>Header Files\Render</Filter>

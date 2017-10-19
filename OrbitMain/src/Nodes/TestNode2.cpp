@@ -46,4 +46,10 @@ void TestNode2::update(std::chrono::nanoseconds elapsedTime)
 
 	if (Input::getInput().keyPressed(Key::Code::Down))
 		_position.z -= 0.01f;
+
+	if (Input::getInput().keyPressed(Key::Code::Left))
+		_position.y -= 0.01f;
+
+	if (Input::getInput().keyPressed(Key::Code::Right))
+		_position.y += 0.01f;
 }
