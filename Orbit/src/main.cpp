@@ -1,4 +1,4 @@
-/// @file main.cpp
+/*! @file main.cpp */
 
 #include <cstdlib>
 #include <iostream>
