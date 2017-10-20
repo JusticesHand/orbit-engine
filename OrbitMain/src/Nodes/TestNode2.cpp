@@ -5,15 +5,14 @@
 #include <Game/CompositeTree/Visitor.h>
 #include <Input/Input.h>
 
-using namespace Orbit;
 using namespace OrbitMain;
 
-TestNode2::TestNode2(const std::shared_ptr<Model>& model)
+TestNode2::TestNode2(const std::shared_ptr<Orbit::Model>& model)
 	: TestNode2("TestNode2", model)
 {
 }
 
-TestNode2::TestNode2(const std::string& name, const std::shared_ptr<Model>& model)
+TestNode2::TestNode2(const std::string& name, const std::shared_ptr<Orbit::Model>& model)
 	: Node(name, model)
 {
 }
@@ -29,27 +28,27 @@ TestNode2& TestNode2::operator=(TestNode2&& rhs)
 	return *this;
 }
 
-void TestNode2::acceptVisitor(Visitor* visitor)
+void TestNode2::acceptVisitor(Orbit::Visitor* visitor)
 {
 	visitor->visitElement(this);
 }
 
-std::shared_ptr<Node> TestNode2::clone() const
+std::shared_ptr<Orbit::Node> TestNode2::clone() const
 {
 	return std::make_shared<TestNode2>(getModel());
 }
 
 void TestNode2::update(std::chrono::nanoseconds elapsedTime)
 {
-	if (Input::getInput().keyPressed(Key::Code::Up))
+	if (Orbit::Input::getInput().keyPressed(Orbit::Key::Code::Up))
 		_position.z += 0.01f;
 
-	if (Input::getInput().keyPressed(Key::Code::Down))
+	if (Orbit::Input::getInput().keyPressed(Orbit::Key::Code::Down))
 		_position.z -= 0.01f;
 
-	if (Input::getInput().keyPressed(Key::Code::Left))
+	if (Orbit::Input::getInput().keyPressed(Orbit::Key::Code::Left))
 		_position.y -= 0.01f;
 
-	if (Input::getInput().keyPressed(Key::Code::Right))
+	if (Orbit::Input::getInput().keyPressed(Orbit::Key::Code::Right))
 		_position.y += 0.01f;
 }

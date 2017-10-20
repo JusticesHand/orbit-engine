@@ -10,16 +10,33 @@
 
 namespace OrbitMain
 {
+	/*!
+	@brief Implementation of the factory design pattern, outputting instances of OrbitMain::TestNode.
+	*/
 	class TestNodeFactory : public Orbit::NodeFactory
 	{
 	public:
+		/*!
+		@brief Constructs the factory with the model in parameter.
+		@param testNodeModel The model to be used in instances of TestNodes.
+		*/
 		TestNodeFactory(std::shared_ptr<Orbit::Model> testNodeModel);
 
+		/*!
+		@brief Creates an instance of OrbitMain::TestNode.
+		@return An instance of OrbitMain::TestNode.
+		*/
 		std::shared_ptr<Orbit::Node> create() const override;
 
+		/*!
+		@brief Creates an instance of OrbitMain::TestNode with the name in parameter.
+		@param name The name to apply to the node.
+		@return An instance of OrbitMain::TestNode.
+		*/
 		std::shared_ptr<Orbit::Node> create(const std::string& name) const override;
 
 	private:
+		/*! The model used by instances of TestNode. */
 		const std::shared_ptr<Orbit::Model> _testNodeModel;
 	};
 }

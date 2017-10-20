@@ -10,13 +10,10 @@ using namespace OrbitMain;
 
 void OrbitMainModule::load()
 {
-	// TODO
-	std::cout << typeid(*this).name() << std::endl;
 }
 
 void OrbitMainModule::unload()
 {
-	// TODO
 }
 
 std::unique_ptr<Orbit::Scene> OrbitMainModule::getInitialScene()
@@ -26,6 +23,10 @@ std::unique_ptr<Orbit::Scene> OrbitMainModule::getInitialScene()
 
 extern "C"
 {
+	/*!
+	@brief Main export function of the assembly. Returns an instance of the MainModule.
+	@return An instance of the main module.
+	*/
 	ORBIT_API Orbit::MainModule* getMainModule()
 	{
 		return new OrbitMainModule();
