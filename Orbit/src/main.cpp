@@ -9,6 +9,11 @@
 
 using namespace Orbit;
 
+/*!
+@brief Main function of the program. Same signature as all other main functions.
+@param argc The amount of arguments.
+@param argv The argument strings.
+*/
 int main(int argc, char* argv[])
 {
 	// TODO: Handle args, etc etc

@@ -10,11 +10,25 @@
 
 namespace Orbit
 {
+	/*! Temporary definition of the rendering api enum. */
 	enum class RendererAPI : int
 	{
 		VulkanAPI = GLFW_NO_API
 	};
 
+	/*!
+	@brief Debug callback function to be run by Vulkan in case of errors.
+	@param flags The flags of the debug error.
+	@param objType The type of the object that triggered the error.
+	@param obj The handle of the object that triggered the error.
+	@param location The location of the object that triggered the error.
+	@param code The error code.
+	@param layerPrefix The prefix of the layer that triggered the error.
+	@param msg The actual message of the error.
+	@param userData User data for the error.
+	@return Whether the error should abort the call or not. For the same behaviour as without
+	debugging layers enabled, it should return VK_FALSE (which it does).
+	*/
 	VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackFunc(
 		VkDebugReportFlagsEXT flags,
 		VkDebugReportObjectTypeEXT objType,
@@ -76,7 +90,7 @@ void VulkanRenderer::flagResize(const glm::ivec2& newSize)
 {
 	_presentQueue.waitIdle();
 	_pipeline.resize(newSize);
-	_modelRenderer.recreateBuffers(&_pipeline);
+	_modelRenderer.recreateBuffers(_pipeline);
 }
 
 void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)

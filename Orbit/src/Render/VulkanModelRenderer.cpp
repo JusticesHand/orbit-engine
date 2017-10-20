@@ -31,9 +31,9 @@ void VulkanModelRenderer::init(
 	_renderSemaphore = _device.createSemaphore({});
 }
 
-void VulkanModelRenderer::recreateBuffers(const VulkanGraphicsPipeline* const newPipeline)
+void VulkanModelRenderer::recreateBuffers(const VulkanGraphicsPipeline& newPipeline)
 {
-	_pipeline = newPipeline;
+	_pipeline = &newPipeline;
 
 	if (!_graphicsCommandBuffers.empty())
 		_device.freeCommandBuffers(*_graphicsCommandPool, _graphicsCommandBuffers);
@@ -251,7 +251,7 @@ void VulkanModelRenderer::cleanup()
 
 	_mainBuffer.clear();
 	_transformBuffer.clear();
-	_animationBuffer.clear();
+	//_animationBuffer.clear();
 }
 
 std::vector<vk::CommandBuffer> VulkanModelRenderer::createGraphicsCommandBuffers()

@@ -26,6 +26,7 @@ const Mod* ModLibrary::getMod() const
 	return _mod.get();
 }
 
+/*! Simple using statement to simplify callback code. */
 using GetModFunc = Mod*(*)();
 
 #if defined(_WIN32)
