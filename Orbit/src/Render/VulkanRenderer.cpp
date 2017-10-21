@@ -10,12 +10,6 @@
 
 namespace Orbit
 {
-	/*! Temporary definition of the rendering api enum. */
-	enum class RendererAPI : int
-	{
-		VulkanAPI = GLFW_NO_API
-	};
-
 	/*!
 	@brief Debug callback function to be run by Vulkan in case of errors.
 	@param flags The flags of the debug error.
@@ -83,7 +77,7 @@ void VulkanRenderer::init(void* windowHandle, const glm::ivec2& windowSize)
 
 RendererAPI VulkanRenderer::getAPI() const
 {
-	return RendererAPI::VulkanAPI;
+	return RendererAPI::Vulkan;
 }
 
 void VulkanRenderer::flagResize(const glm::ivec2& newSize)

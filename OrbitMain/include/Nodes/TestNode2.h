@@ -19,14 +19,14 @@ namespace OrbitMain
 		@brief Initializes the node with the model in parameter, with the node's default name.
 		@param model The model to be adopted by the node.
 		*/
-		explicit TestNode2(const std::shared_ptr<Orbit::Model>& model);
+		explicit TestNode2(const Orbit::Input& input, const std::shared_ptr<Orbit::Model>& model);
 
 		/*!
 		@brief Initializes the node with the name and model in parameter.
 		@param name The name of the node, for lookup purposes.
 		@param model The model to be adopted by the node.
 		*/
-		explicit TestNode2(const std::string& name, const std::shared_ptr<Orbit::Model>& model);
+		explicit TestNode2(const Orbit::Input& input, const std::string& name, const std::shared_ptr<Orbit::Model>& model);
 
 		/*!
 		@brief Destructor for the class.

@@ -16,24 +16,11 @@
 namespace Orbit
 {
 	/*!
-	@brief The main input class, giving read (and minimal write) access to the state of input for the engine.
-	Implements the Singleton pattern as the input states must be consistant between modules.
+	@brief The main input class, giving read and write access to the state of input for the engine.
 	*/
 	class Input final
 	{
-		// Only the window can set the input states.
-		friend class Window;
-
-		// The game class synchronizes mouse movement so nodes have a usable mouse delta.
-		friend class Game;
-
 	public:
-		/*!
-		@brief Returns the single Input instance.
-		@return The single Input instance.
-		*/
-		ORBIT_CORE_API static Input& getInput();
-
 		/*!
 		@brief Returns true if the Key in parameter is pressed.
 		@param key The key whose state is polled.
@@ -68,12 +55,6 @@ namespace Orbit
 		*/
 		ORBIT_CORE_API void registerVirtualKey(const const_str& keyName, const Key& key);
 
-	private:
-		/*!
-		@brief Default constructor for the class.
-		*/
-		Input() = default;
-
 		/*!
 		@brief Logs a key press. Sets the flag of the key.
 		@param key The key that was pressed.
@@ -104,6 +85,7 @@ namespace Orbit
 		*/
 		ORBIT_CORE_API void setWindowSize(const glm::ivec2& newWindowSize);
 
+	private:
 		/*! A bi-directional map that maps keys to their virtual names. */
 		bimap<const_str, Key> _virtualKeyMap;
 		/*! An array of key states. */
@@ -111,9 +93,6 @@ namespace Orbit
 
 		/*! The size of the window. */
 		glm::ivec2 _windowSize;
-
-		/*! The singleton's instance. */
-		static Input _instance;
 
 		/*! A mutex to handle synchronization. */
 		mutable std::mutex _mutex;

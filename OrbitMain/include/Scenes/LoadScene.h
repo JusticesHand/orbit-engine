@@ -28,7 +28,7 @@ namespace OrbitMain
 		/*!
 		@brief Loads in the scene's node factories.
 		*/
-		void loadFactories() override;
+		void loadFactories(const Orbit::Input& input) override;
 
 		/*!
 		@brief Places the scene's initial object states.

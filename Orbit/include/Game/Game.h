@@ -14,11 +14,12 @@
 
 namespace Orbit
 {
-	class Scene;
 	class CompositeTree;
 	class MainModule;
 	class ModLibrary;
-	class Input;
+	class Scene;
+	class TaskRunner;
+	class Window;
 
 	/*!
 	@brief Class wrapping up general game-related logic, like scene handling, projection, composite tree state,
@@ -27,16 +28,23 @@ namespace Orbit
 	class Game final
 	{
 	public:
-		/*! 
-		@brief Returns the game's single instance.
-		@return The game's single instance.
+		/*!
+		@brief Constructor for the class. Sets most members to default values.
+		@param taskRunner The game's task runner.
 		*/
-		static Game& getInstance();
+		Game(TaskRunner& taskRunner);
 
 		/*!
-		@brief Destructor for the class.
+		@brief Destructor for the class. Delete pointers when their classes are defined.
 		*/
-		~Game() = default;
+		~Game();
+
+		/*!
+		@brief Constructor for the class. Sets most members to default values. Takes the input in parameter.
+		@param input The game's input.
+		@param taskRunner The game's task runner.
+		*/
+		Game(Window& input, TaskRunner& taskRunner);
 
 		Game(const Game&) = delete;
 		Game& operator=(const Game&) = delete;
@@ -52,16 +60,23 @@ namespace Orbit
 		void cleanup();
 
 		/*!
+		@brief Returns whether or not the game should close.
+		@return Whether or not the game should close.
+		*/
+		bool shouldClose() const;
+
+		/*!
 		@brief Passes on the elapsed time to the inner tree to generate a game tick.
 		@param elapsedTime The elapsed time since the last tick.
 		*/
 		void update(std::chrono::nanoseconds elapsedTime);
 		
 	private:
-		/*!
-		@brief Default constructor for the class. Sets most members to default values.
-		*/
-		Game();
+		/*! The game's window. */
+		Window* const _window = nullptr;
+
+		/*! The game's task runner. */
+		TaskRunner& _taskRunner;
 
 		/*! Sets the next scene to the scene in parameter. It will be loaded on the next frame. */
 		void loadScene(std::unique_ptr<Scene> scene);

@@ -4,13 +4,6 @@
 
 using namespace Orbit;
 
-Input Input::_instance;
-
-Input& Input::getInput()
-{
-	return _instance;
-}
-
 bool Input::keyPressed(const Key& key) const
 {
 	return _keyStates[key.index()];

@@ -18,6 +18,7 @@
 namespace Orbit
 {
 	class Model;
+	class Input;
 	class Visitor;
 
 	/*!
@@ -28,28 +29,27 @@ namespace Orbit
 	{
 	public:
 		/*!
-		@brief The class's only constructor.
-		@param name The name applied to the node to enable named searching.
-		*/
-		ORBIT_CORE_API explicit Node(const std::string& name);
-
-		/*!
-		@brief The class's only constructor.
+		@brief The class's constructor, for a node where input is not required.
 		@param name The name applied to the node to enable named searching.
 		@param model The model to apply to the node.
 		*/
-		ORBIT_CORE_API explicit Node(const std::string& name, const std::shared_ptr<Model>& model);
+		ORBIT_CORE_API explicit Node(const std::string& name, const std::shared_ptr<Model>& model = nullptr);
 
 		/*!
-		@brief Destructor for this (abstract) class.
+		@brief The class's constructor, for a node where input is needed.
+		@param input A reference to the input handler of the game.
+		@param name The name applied to the node to enable named searching.
+		@param model The model to apply to the node.
 		*/
-		virtual ~Node() = 0;
+		ORBIT_CORE_API explicit Node(const Input& input, const std::string& name, const std::shared_ptr<Model>& model = nullptr);
 
 		/*!
 		@brief Move constructor for the class. Required by derived classes.
 		@param rhs The node to move.
 		*/
 		ORBIT_CORE_API Node(Node&& rhs);
+
+		ORBIT_CORE_API virtual ~Node() = default;
 
 		/*!
 		@brief Move assignment operator for the class. Required by derived classes.
@@ -171,6 +171,12 @@ namespace Orbit
 		*/
 		ORBIT_CORE_API void setDestroyed(bool value);
 
+		/*!
+		@brief Getter for a reference to the node's input handler, passed along during construction.
+		@return A reference to the node's input handler.
+		*/
+		ORBIT_CORE_API const Input& getInput() const;
+
 		/*! Mutex to be used to control access to this object. */
 		mutable std::mutex _mutex;
 
@@ -197,13 +203,13 @@ namespace Orbit
 	private:
 		/*! The status of the node's destruction. */
 		bool _destroyed = false;
+		/*! The node's input handler pointer, allowing nullptr and copy semantics. */
+		const Input* _input = nullptr;
 		/*! The node's name. */
 		std::string _name;
 		/*! The node's model. */
 		std::shared_ptr<Model> _model;
 	};
-
-	inline Node::~Node() = default;
 }
 
 #endif //GAME_COMPOSITETREE_NODE_H

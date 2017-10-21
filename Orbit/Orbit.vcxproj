@@ -13,7 +13,11 @@
   <ItemGroup>
     <ClInclude Include="include\Game\Game.h" />
     <ClInclude Include="include\Game\ModLibrary.h" />
+    <ClInclude Include="include\Input\GLFWWindow.h" />
+    <ClInclude Include="include\Input\GLFWWindowLibrary.h" />
+    <ClInclude Include="include\Input\Win32WindowLibrary.h" />
     <ClInclude Include="include\Input\Window.h" />
+    <ClInclude Include="include\Input\WindowLibrary.h" />
     <ClInclude Include="include\Render\Renderer.h" />
     <ClInclude Include="include\Render\VulkanGraphicsPipeline.h" />
     <ClInclude Include="include\Render\VulkanImage.h" />
@@ -21,11 +25,14 @@
     <ClInclude Include="include\Render\VulkanModelRenderer.h" />
     <ClInclude Include="include\Render\VulkanRenderer.h" />
     <ClInclude Include="include\Render\VulkanUtils.h" />
+    <ClInclude Include="include\Task\TaskRunner.h" />
     <ClInclude Include="include\Visitors\ModelVisitor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Game\Game.cpp" />
     <ClCompile Include="src\Game\ModLibrary.cpp" />
+    <ClCompile Include="src\Input\GLFWWindow.cpp" />
+    <ClCompile Include="src\Input\GLFWWindowLibrary.cpp" />
     <ClCompile Include="src\Input\Window.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Render\VulkanGraphicsPipeline.cpp" />
@@ -34,6 +41,7 @@
     <ClCompile Include="src\Render\VulkanModelRenderer.cpp" />
     <ClCompile Include="src\Render\VulkanRenderer.cpp" />
     <ClCompile Include="src\Render\VulkanUtils.cpp" />
+    <ClCompile Include="src\Task\TaskRunner.cpp" />
     <ClCompile Include="src\Visitors\ModelVisitor.cpp" />
   </ItemGroup>
   <ItemGroup>

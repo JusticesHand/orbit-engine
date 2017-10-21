@@ -15,18 +15,19 @@ namespace Orbit
 	@brief A concrete specialization of the composite tree structure. Simulates a root node and gives access
 	to tree members (via visitor methods).
 	*/
-	class CompositeTree : public CompositeNode
+	class CompositeTree final : public CompositeNode
 	{
 	public:
 		/*!
 		@brief The class's constructor.
+		@param input A reference to the game's input.
 		*/
 		ORBIT_CORE_API CompositeTree();
 		
 		/*!
 		@brief The class's destructor.
 		*/
-		ORBIT_CORE_API virtual ~CompositeTree();
+		ORBIT_CORE_API virtual ~CompositeTree() = default;
 
 		/*!
 		@brief Move constructor for the class. Moves rhs's child nodes and invalidates rhs.

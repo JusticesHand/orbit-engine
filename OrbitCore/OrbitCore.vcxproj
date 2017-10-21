@@ -119,6 +119,7 @@
     <ClCompile Include="src\Game\CompositeTree\CompositeNode.cpp" />
     <ClCompile Include="src\Game\CompositeTree\CompositeTree.cpp" />
     <ClCompile Include="src\Game\CompositeTree\Node.cpp" />
+    <ClCompile Include="src\Game\Factories\NodeFactory.cpp" />
     <ClCompile Include="src\Input\Input.cpp" />
     <ClCompile Include="src\Render\Model.cpp" />
     <ClCompile Include="src\Render\Projection.cpp" />

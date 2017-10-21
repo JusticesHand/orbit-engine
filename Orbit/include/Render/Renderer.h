@@ -11,7 +11,15 @@
 namespace Orbit
 {
 	class Model;
-	enum class RendererAPI : int;
+
+	/*!
+	@brief Definition of the available API types in the system. Note that some aren't available for some platforms
+	(read: DirectX is Windows-only).
+	*/
+	enum class RendererAPI : int
+	{
+		Vulkan, DirectX, OpenGL
+	};
 
 	/*!
 	@brief Renderer base class for the engine. Abstracts rendering operations in a usable base class

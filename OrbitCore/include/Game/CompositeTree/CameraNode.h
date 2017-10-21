@@ -27,7 +27,7 @@ namespace Orbit
 		/*!
 		@brief Destructor for a CameraNode.
 		*/
-		ORBIT_CORE_API virtual ~CameraNode();
+		ORBIT_CORE_API virtual ~CameraNode() = default;
 		
 		CameraNode(const CameraNode&) = delete;
 		CameraNode& operator=(const CameraNode&) = delete;

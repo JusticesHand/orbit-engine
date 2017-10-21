@@ -12,8 +12,6 @@ CameraNode::CameraNode()
 {
 }
 
-CameraNode::~CameraNode() = default;
-
 CameraNode::CameraNode(CameraNode&& rhs)
 	: Node(std::move(rhs))
 {

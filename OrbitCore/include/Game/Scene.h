@@ -29,21 +29,16 @@ namespace Orbit
 	{
 	public:
 		/*!
-		@brief Default constructor for the class.
-		*/
-		Scene() = default;
-
-		/*!
 		@brief Destructor for the class.
 		*/
-		virtual ~Scene() = 0;
+		virtual ~Scene() = default;
 
 		/*!
 		@brief Loads the factories necessary for future node creation. Factories must be registered using the storeFactory
 		to be useable.
 		@see Orbit::Scene::storeFactory(std::unique_ptr<Factory>)
 		*/
-		virtual void loadFactories() = 0;
+		virtual void loadFactories(const Input& input) = 0;
 
 		/*!
 		@brief Loads the initial composite tree state. Creates the necessary nodes in the tree, using the loaded factories.
@@ -102,11 +97,7 @@ namespace Orbit
 	private:
 		/*! The scene's map of factories. */
 		std::unordered_map<std::type_index, std::unique_ptr<NodeFactory>> _factoryMap;
-
-		std::vector<std::shared_ptr<Model>> _models;
 	};
-
-	inline Scene::~Scene() = default;
 }
 
 #endif //GAME_SCENE_H

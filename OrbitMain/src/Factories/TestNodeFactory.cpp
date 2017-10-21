@@ -2,20 +2,19 @@
 
 #include "Nodes/TestNode.h"
 
-using namespace Orbit;
 using namespace OrbitMain;
 
-TestNodeFactory::TestNodeFactory(std::shared_ptr<Model> testNodeModel)
-	: _testNodeModel(testNodeModel)
+TestNodeFactory::TestNodeFactory(const Orbit::Input& input, std::shared_ptr<Orbit::Model> testNodeModel)
+	: NodeFactory(input), _testNodeModel(testNodeModel)
 {
 }
 
-std::shared_ptr<Node> TestNodeFactory::create() const
+std::shared_ptr<Orbit::Node> TestNodeFactory::create() const
 {
-	return std::make_shared<TestNode>(_testNodeModel);
+	return std::make_shared<TestNode>(_input, _testNodeModel);
 }
 
 std::shared_ptr<Orbit::Node> TestNodeFactory::create(const std::string& name) const
 {
-	return std::make_shared<TestNode>(name, _testNodeModel);
+	return std::make_shared<TestNode>(_input, name, _testNodeModel);
 }

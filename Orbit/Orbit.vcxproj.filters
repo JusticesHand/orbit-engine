@@ -40,6 +40,12 @@
     <Filter Include="Source Files\Visitors">
       <UniqueIdentifier>{0ead1a69-af68-477b-9ee2-ce59db35ef70}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Task">
+      <UniqueIdentifier>{878f618f-fd4c-403d-bc4d-93c9243cd841}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Task">
+      <UniqueIdentifier>{35749ad3-48df-4bbb-aca3-e1c4bf3327f4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Input\Window.h">
@@ -75,6 +81,21 @@
     <ClInclude Include="include\Render\Renderer.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
+    <ClInclude Include="include\Input\WindowLibrary.h">
+      <Filter>Header Files\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Input\GLFWWindowLibrary.h">
+      <Filter>Header Files\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Input\Win32WindowLibrary.h">
+      <Filter>Header Files\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Input\GLFWWindow.h">
+      <Filter>Header Files\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Task\TaskRunner.h">
+      <Filter>Header Files\Task</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -109,6 +130,15 @@
     </ClCompile>
     <ClCompile Include="src\Visitors\ModelVisitor.cpp">
       <Filter>Source Files\Visitors</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Input\GLFWWindow.cpp">
+      <Filter>Source Files\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Task\TaskRunner.cpp">
+      <Filter>Source Files\Task</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Input\GLFWWindowLibrary.cpp">
+      <Filter>Source Files\Input</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

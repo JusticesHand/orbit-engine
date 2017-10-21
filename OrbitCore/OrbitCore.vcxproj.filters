@@ -40,6 +40,9 @@
     <Filter Include="Header Files\Game\Factories">
       <UniqueIdentifier>{6a436f57-b7f2-4512-ad00-88197d495a32}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Game\Factories">
+      <UniqueIdentifier>{d1197f97-b986-47bd-9316-05879b041331}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Game\CompositeTree\CompositeNode.cpp">
@@ -62,6 +65,9 @@
     </ClCompile>
     <ClCompile Include="src\Render\Projection.cpp">
       <Filter>Source Files\Render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Game\Factories\NodeFactory.cpp">
+      <Filter>Source Files\Game\Factories</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

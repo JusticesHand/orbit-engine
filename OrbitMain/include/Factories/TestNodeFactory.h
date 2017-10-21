@@ -18,9 +18,10 @@ namespace OrbitMain
 	public:
 		/*!
 		@brief Constructs the factory with the model in parameter.
+		@param input A reference to the input handler used by all the nodes.
 		@param testNodeModel The model to be used in instances of TestNodes.
 		*/
-		TestNodeFactory(std::shared_ptr<Orbit::Model> testNodeModel);
+		TestNodeFactory(const Orbit::Input& input, std::shared_ptr<Orbit::Model> testNodeModel);
 
 		/*!
 		@brief Creates an instance of OrbitMain::TestNode.

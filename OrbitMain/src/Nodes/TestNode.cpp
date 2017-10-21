@@ -9,13 +9,13 @@
 
 using namespace OrbitMain;
 
-TestNode::TestNode(const std::shared_ptr<Orbit::Model>& model)
-	: TestNode("TestNode", model)
+TestNode::TestNode(const Orbit::Input& input, const std::shared_ptr<Orbit::Model>& model)
+	: TestNode(input, "TestNode", model)
 {
 }
 
-TestNode::TestNode(const std::string& name, const std::shared_ptr<Orbit::Model>& model)
-	: Node(name, model)
+TestNode::TestNode(const Orbit::Input& input, const std::string& name, const std::shared_ptr<Orbit::Model>& model)
+	: Node(input, name, model)
 {
 }
 
@@ -37,7 +37,7 @@ void TestNode::acceptVisitor(Orbit::Visitor* visitor)
 
 std::shared_ptr<Orbit::Node> TestNode::clone() const
 {
-	return std::make_shared<TestNode>(getModel());
+	return std::make_shared<TestNode>(getInput(), getModel());
 }
 
 void TestNode::update(std::chrono::nanoseconds elapsedTime)
@@ -51,13 +51,13 @@ void TestNode::update(std::chrono::nanoseconds elapsedTime)
 		std::cout << "A second has passed." << std::endl;
 	}
 
-	if (Orbit::Input::getInput().keyPressed(Orbit::Key::Code::A))
+	if (getInput().keyPressed(Orbit::Key::Code::A))
 		std::cout << "Hi I pressed the A button" << std::endl;
 
-	if (Orbit::Input::getInput().keyPressed("Fire"))
+	if (getInput().keyPressed("Fire"))
 		std::cout << "Pew pew - virtual fire button enabled" << std::endl;
 
-	glm::ivec2 mouseDelta = Orbit::Input::getInput().mouseDelta();
+	glm::ivec2 mouseDelta = getInput().mouseDelta();
 	if (mouseDelta.x != 0 && mouseDelta.y != 0)
 		std::cout << "MOVED THE MOUSE: " << mouseDelta.x << "," << mouseDelta.y << std::endl;
 }

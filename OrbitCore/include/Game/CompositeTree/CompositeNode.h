@@ -20,21 +20,25 @@ namespace Orbit
 	{
 	public:
 		/*!
-		@brief The class's only constructor.
-		@param name the name to apply to the node to be able to search for it later.
+		@brief The class's constructor, for a node that does not require input.
+		@param name The name to apply to the node to be able to search for it later.
 		*/
 		ORBIT_CORE_API explicit CompositeNode(const std::string& name);
 
 		/*!
-		@brief Destructor for this (abstract) class.
+		@brief The class's constructor, for a node that required input.
+		@param input A reference to the input handler to be used by the node.
+		@param name The name to apply to the node to be able to search for it later.
 		*/
-		virtual ~CompositeNode() = 0;
+		ORBIT_CORE_API explicit CompositeNode(const Input& input, const std::string& name);
 
 		/*!
 		@brief Move constructor for the class. Moves the children as to not have multiple node ownerships.
 		@param rhs the node to move.
 		*/
 		ORBIT_CORE_API CompositeNode(CompositeNode&& rhs);
+
+		ORBIT_CORE_API ~CompositeNode() = default;
 
 		/*!
 		@brief Move assignment operator for the class. Moves the children as to not have multiple node ownerships.
@@ -125,10 +129,7 @@ namespace Orbit
 		std::weak_ptr<CompositeNode> _parent;
 		/*! A list of the children owned by the node. */
 		std::vector<std::shared_ptr<Node>> _children;
-
 	};
-
-	inline CompositeNode::~CompositeNode() = default;
 }
 
 #endif //GAME_COMPOSITETREE_COMPOSITENODE_H

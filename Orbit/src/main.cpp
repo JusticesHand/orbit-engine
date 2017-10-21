@@ -2,10 +2,24 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 
+#include "Input/WindowLibrary.h"
 #include "Input/Window.h"
 #include "Render/Renderer.h"
 #include "Game/Game.h"
+
+#include "Task/TaskRunner.h"
+
+#if defined(USE_WIN32)
+#include "Input/Win32WindowLibrary.h"
+#elif defined(USE_XWINDOW)
+#error XWindowLibrary is not implemented yet!
+#elif defined(USE_WAYLAND)
+#error WaylandWindowLibrary is not implemented yet!
+#else
+#include "Input/GLFWWindowLibrary.h"
+#endif
 
 using namespace Orbit;
 
@@ -19,21 +33,30 @@ int main(int argc, char* argv[])
 	// TODO: Handle args, etc etc
 	try
 	{
+		std::unique_ptr<WindowLibrary> windowLib = std::make_unique<WINDOWLIB>();
+
 		// TODO: Initialization with options.
-		Window::createWindow(1280, 720, "Hello World");
+		std::unique_ptr<Window> window = windowLib->createWindow(1280, 720, "Hello World", false);
 
-		Window::getInstance().constrainTicking(true);
-		Window::getInstance().setTargetTicksPerSecond(120);
+		window->open();
 
-		Window::getInstance().open();
+		TaskRunner runner;
+		Game game{ *window, runner };
 
-		Game::getInstance().initialize();
+		game.initialize();
 
-		Window::getInstance().run([](std::chrono::nanoseconds time)
-		{
-			Game::getInstance().update(time);
-			Window::getInstance().getRenderer()->renderFrame();
+		// Note that the game's shouldClose() function is directly linked to the window's.
+		// TODO: Instead of doing rendering on main thread, check if -server is in parameters. Then pipe console commands
+		// to the game's hypothetical command pipeline.
+		runner.run(120, [&window]() {
+			return window->shouldClose();
+		},
+		[&window]() {
+			window->handleMessages();
+			window->getRenderer()->renderFrame();
 		});
+
+		runner.joinAll();
 	}
 	catch (std::exception& ex)
 	{

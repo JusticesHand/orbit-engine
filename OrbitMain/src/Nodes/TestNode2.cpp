@@ -7,13 +7,13 @@
 
 using namespace OrbitMain;
 
-TestNode2::TestNode2(const std::shared_ptr<Orbit::Model>& model)
-	: TestNode2("TestNode2", model)
+TestNode2::TestNode2(const Orbit::Input& input, const std::shared_ptr<Orbit::Model>& model)
+	: TestNode2(input, "TestNode2", model)
 {
 }
 
-TestNode2::TestNode2(const std::string& name, const std::shared_ptr<Orbit::Model>& model)
-	: Node(name, model)
+TestNode2::TestNode2(const Orbit::Input& input, const std::string& name, const std::shared_ptr<Orbit::Model>& model)
+	: Node(input, name, model)
 {
 }
 
@@ -35,20 +35,20 @@ void TestNode2::acceptVisitor(Orbit::Visitor* visitor)
 
 std::shared_ptr<Orbit::Node> TestNode2::clone() const
 {
-	return std::make_shared<TestNode2>(getModel());
+	return std::make_shared<TestNode2>(getInput(), getModel());
 }
 
 void TestNode2::update(std::chrono::nanoseconds elapsedTime)
 {
-	if (Orbit::Input::getInput().keyPressed(Orbit::Key::Code::Up))
+	if (getInput().keyPressed(Orbit::Key::Code::Up))
 		_position.z += 0.01f;
 
-	if (Orbit::Input::getInput().keyPressed(Orbit::Key::Code::Down))
+	if (getInput().keyPressed(Orbit::Key::Code::Down))
 		_position.z -= 0.01f;
 
-	if (Orbit::Input::getInput().keyPressed(Orbit::Key::Code::Left))
+	if (getInput().keyPressed(Orbit::Key::Code::Left))
 		_position.y -= 0.01f;
 
-	if (Orbit::Input::getInput().keyPressed(Orbit::Key::Code::Right))
+	if (getInput().keyPressed(Orbit::Key::Code::Right))
 		_position.y += 0.01f;
 }

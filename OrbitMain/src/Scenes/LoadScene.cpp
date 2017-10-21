@@ -12,12 +12,11 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-using namespace Orbit;
 using namespace OrbitMain;
 
-void LoadScene::loadFactories()
+void LoadScene::loadFactories(const Orbit::Input& input)
 {
-	std::shared_ptr<Model> model1 = std::make_shared<Model>(std::vector<Vertex>{
+	std::shared_ptr<Orbit::Model> model1 = std::make_shared<Orbit::Model>(std::vector<Orbit::Vertex>{
 		{{-0.5, -0.5, 0}, {0, 0}, {0, 0, 0}, {1, 0, 0, 1}},
 		{{0.5, -0.5, 0}, {0, 0}, {0, 0, 0}, {0, 1, 0, 1}},
 		{{0.5, 0.5, 0}, {0, 0}, {0, 0, 0}, {0, 0, 1, 1}},
@@ -27,15 +26,15 @@ void LoadScene::loadFactories()
 		{{-0.5, -0.5, 0}, {0, 0}, {0, 0, 0}, {1, 0, 0, 1}}
 	});
 
-	storeFactory<TestNode>(std::make_unique<TestNodeFactory>(model1));
-	storeFactory<TestNode2>(std::make_unique<TestNode2Factory>(model1));
+	storeFactory<TestNode>(std::make_unique<TestNodeFactory>(input, model1));
+	storeFactory<TestNode2>(std::make_unique<TestNode2Factory>(input, model1));
 }
 
 void LoadScene::load(Orbit::CompositeTree& tree)
 {
-	std::shared_ptr<CameraNode> camera = std::make_shared<CameraNode>();
+	std::shared_ptr<Orbit::CameraNode> camera = std::make_shared<Orbit::CameraNode>();
 
-	camera->setPosition({2, 2, 2});
+	camera->setPosition({ 2, 2, 2 });
 	camera->setDirection({ -1, -1, -1 });
 	camera->setUp({ 0, 0, 1 });
 
@@ -43,7 +42,7 @@ void LoadScene::load(Orbit::CompositeTree& tree)
 
 	tree.addChild(createNode<TestNode>("First"));
 
-	std::shared_ptr<Node> secondChild = createNode<TestNode2>("Second");
+	std::shared_ptr<Orbit::Node> secondChild = createNode<TestNode2>("Second");
 	secondChild->setPosition({ 0, 0, -0.5 });
 	secondChild->setRotation(glm::angleAxis(glm::radians(180.f), glm::vec3{ 0, 0, 1 }));
 	tree.addChild(secondChild);
