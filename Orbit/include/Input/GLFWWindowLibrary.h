@@ -10,6 +10,7 @@
 #error "WINDOWLIB was already defined elsewhere! Only one window library can be defined."
 #endif
 
+/*! Definition of the window library type. */
 #define WINDOWLIB Orbit::GLFWWindowLibrary
 
 namespace Orbit

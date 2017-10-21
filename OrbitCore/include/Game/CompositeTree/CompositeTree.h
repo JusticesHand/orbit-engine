@@ -20,7 +20,6 @@ namespace Orbit
 	public:
 		/*!
 		@brief The class's constructor.
-		@param input A reference to the game's input.
 		*/
 		ORBIT_CORE_API CompositeTree();
 		

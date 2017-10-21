@@ -18,12 +18,14 @@ namespace OrbitMain
 	public:
 		/*!
 		@brief Initializes the node with the model in parameter, using the node's default name.
+		@param input The input handler reference to use by the node.
 		@param model The model to assign to the node.
 		*/
 		explicit TestNode(const Orbit::Input& input, const std::shared_ptr<Orbit::Model>& model);
 
 		/*!
 		@brief Initializes the node with the name and model in parameter.
+		@param input The input handler reference to use by the node.
 		@param name The name of the node, for lookup purposes.
 		@param model The model to assign to the node.
 		*/

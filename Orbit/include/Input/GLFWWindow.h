@@ -8,6 +8,9 @@
 
 namespace Orbit
 {
+	/*!
+	@brief Specialization of the Window class for the GLFW library.
+	*/
 	class GLFWWindow final : public Window
 	{
 	public:

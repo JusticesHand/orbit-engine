@@ -112,8 +112,10 @@ namespace Orbit
 		/*! A unique pointer to the window's input. */
 		std::unique_ptr<Input> _input;
 
-		/*! Positions for the mouse. */
-		int _x = 0, _y = 0;
+		/*! X position for the mouse. */
+		int _x = 0;
+		/*! Y position for the mouse. */
+		int _y = 0;
 	};
 }
 
