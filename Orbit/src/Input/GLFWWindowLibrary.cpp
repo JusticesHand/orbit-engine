@@ -19,7 +19,7 @@ GLFWWindowLibrary::~GLFWWindowLibrary()
 	glfwTerminate();
 }
 
-std::unique_ptr<Window> GLFWWindowLibrary::createWindow(int width, int height, const std::string& title, bool fullscreen)
+std::unique_ptr<Window> GLFWWindowLibrary::createWindow(const glm::ivec2& size, const std::string& title, bool fullscreen)
 {
-	return std::make_unique<GLFWWindow>(width, height, title, fullscreen);
+	return std::make_unique<GLFWWindow>(size, title, fullscreen);
 }

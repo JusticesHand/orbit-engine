@@ -7,6 +7,8 @@
 #include <memory>
 #include <string>
 
+#include <glm/glm.hpp>
+
 namespace Orbit
 {
 	class Window;
@@ -20,12 +22,11 @@ namespace Orbit
 	public:
 		/*!
 		@brief Serves as the factory method for the class. Returns a new instance of a window with the elements in parameter.
-		@param width The window's desired width.
-		@param height The window's desired height.
+		@param size The window's desired size.
 		@param title The window's desired title.
 		@param fullscreen Whether the window should be created as fullscreen or not.
 		*/
-		virtual std::unique_ptr<Window> createWindow(int width, int height, const std::string& title, bool fullscreen) = 0;
+		virtual std::unique_ptr<Window> createWindow(const glm::ivec2& size, const std::string& title, bool fullscreen) = 0;
 	};
 }
 

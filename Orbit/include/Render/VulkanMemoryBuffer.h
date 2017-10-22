@@ -5,14 +5,16 @@
 #pragma once
 
 #include <cstdint>
-#include <vulkan/vulkan.hpp>
-
+#include <memory>
 #include <vector>
 
-#include "Render/VulkanImage.h"
+#include <vulkan/vulkan.hpp>
 
 namespace Orbit
 {
+	class VulkanBase;
+	class VulkanImage;
+
 	/*!
 	@brief Wrapper class containing a vk::Buffer and vk::DeviceMemory object.
 	Handles memory allocation through a simple block framework - block sizes are supplied and their access
@@ -24,19 +26,17 @@ namespace Orbit
 		/*!
 		@brief Default constructor for the class. Does not allocate any memory - serves as a blank slate to be overriden.
 		*/
-		VulkanMemoryBuffer() = default;
+		VulkanMemoryBuffer(std::nullptr_t);
 
 		/*!
 		@brief Constructs a VulkanMemoryBuffer object with the objects in parameter.
-		@param physicalDevice The physical device hosting the memory.
-		@param device The logical device controlling creation/allocation functionality.
+		@param base The base of the Vulkan renderer.
 		@param blockSizes A collection of sizes for the blocks. The constructor computes the total size from these.
 		@param createInfo The create info used to create the buffer. Its size property is set by the contructor.
 		@param memFlags The flags that the memory should possess.
 		*/
 		explicit VulkanMemoryBuffer(
-			const vk::PhysicalDevice& physicalDevice,
-			const vk::Device& device,
+			std::shared_ptr<const VulkanBase> base,
 			const std::vector<vk::DeviceSize>& blockSizes,
 			vk::BufferCreateInfo createInfo,
 			vk::MemoryPropertyFlags memFlags);
@@ -65,19 +65,17 @@ namespace Orbit
 		/*!
 		@brief Helper function to generate a command buffer that handles transfers to another buffer.
 		@param rhs The buffer to be the destination of the data.
-		@param transferPool The transfer command pool to allocate the command buffer.
 		@param dstOffset The offset into the destination memory.
 		@return A recorded command buffer describing the transfer operation, ready to be submitted.
 		*/
-		vk::CommandBuffer transferToBuffer(VulkanMemoryBuffer& rhs, vk::CommandPool transferPool, vk::DeviceSize dstOffset = 0Ui64);
+		vk::CommandBuffer transferToBuffer(VulkanMemoryBuffer& rhs, vk::DeviceSize dstOffset = 0Ui64);
 
 		/*!
 		@brief Helper function to generate a command buffer that handles transfers to an image.
 		@param rhs The image to be the destination of the data.
-		@param transferPool The transfer command pool to allocate the command buffer.
 		@return A recorded command buffer describing the transfer operation, ready to be submitted.
 		*/
-		vk::CommandBuffer transferToImage(VulkanImage& rhs, vk::CommandPool transferPool);
+		vk::CommandBuffer transferToImage(VulkanImage& rhs);
 
 		/*!
 		@brief Destroys the Buffer and DeviceMemory members, essentially recreating a blank slate.
@@ -122,19 +120,19 @@ namespace Orbit
 		private:
 			/*!
 			@brief Constructor for the class. Constructs the Block object with the parameters.
-			@param device The logical device to be used for copy operations.
-			@param memory The actual memory object containing the block.
+			@param base The base of the Vulkan renderer.
+			@param memory The memory on which the block is based.
 			@param size The size of the memory block.
 			@param offset The offset of the memory block.
 			*/
 			Block(
-				vk::Device device,
+				std::shared_ptr<const VulkanBase> base,
 				vk::DeviceMemory memory,
 				vk::DeviceSize size,
 				vk::DeviceSize offset);
 
-			/*! The logical device used for copy operations. */
-			vk::Device _device;
+			/*! The Vulkan base. */
+			std::shared_ptr<const VulkanBase> _base;
 			/*! The actual underlying memory containing the Block. */
 			vk::DeviceMemory _memory;
 			/*! The size of the block's memory. */
@@ -151,9 +149,17 @@ namespace Orbit
 		*/
 		Block& getBlock(size_t index);
 
+		/*!
+		@brief Indexing operator for getting a block. Simply calls VulkanMemoryBuffer::getBlock().
+		@throw std::out_of_range Throws if the index is out of range - passed on by std::vector.
+		@param index The index of the block to retrieve.
+		@return The block.
+		*/
+		Block& operator[](size_t index);
+
 	private:
-		/*! The logical device to use for allocation, copy and cleanup operations. */
-		vk::Device _device;
+		/*! The renderer's base. */
+		std::shared_ptr<const VulkanBase> _base;
 		/*! Created and owned buffer. */
 		vk::Buffer _buffer;
 		/*! Created and owned memory. */

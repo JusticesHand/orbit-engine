@@ -24,10 +24,9 @@ namespace
 	Key getMouse(int keyCode);
 }
 
-GLFWWindow::GLFWWindow(int width, int height, const std::string& title, bool fullscreen)
-	: Window(width, height, title, fullscreen)
+GLFWWindow::GLFWWindow(const glm::ivec2& size, const std::string& title, bool fullscreen)
+	: Window(size, title, fullscreen)
 {
-	_input = std::make_unique<Input>();
 }
 
 GLFWWindow::~GLFWWindow()
@@ -48,7 +47,7 @@ void GLFWWindow::open()
 	glfwWindowHint(GLFW_CLIENT_API, getAPIValue(_renderer->getAPI()));
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-	GLFWwindow* windowHandle = glfwCreateWindow(_width, _height, _title.c_str(), nullptr, nullptr);
+	GLFWwindow* windowHandle = glfwCreateWindow(_size.x, _size.y, _title.c_str(), nullptr, nullptr);
 	_windowHandle = windowHandle;
 
 	glfwSetWindowUserPointer(windowHandle, this);
@@ -58,7 +57,7 @@ void GLFWWindow::open()
 
 	glm::ivec2 windowSize{ sizeX, sizeY };
 	_input->setWindowSize(windowSize);
-	_renderer->init(_windowHandle, windowSize);
+	_renderer->init(this);
 
 	glfwSetWindowSizeCallback(windowHandle, [](GLFWwindow* windowHandle, int sizeX, int sizeY) {
 		GLFWWindow* window = static_cast<GLFWWindow*>(glfwGetWindowUserPointer(windowHandle));
@@ -74,9 +73,9 @@ void GLFWWindow::open()
 		Key key = getKey(keyCode);
 
 		if (action == GLFW_PRESS || action == GLFW_REPEAT)
-			window->getInput()->logKeyPress(key);
+			window->input()->logKeyPress(key);
 		else
-			window->getInput()->logKeyRelease(key);
+			window->input()->logKeyRelease(key);
 	});
 
 	glfwSetMouseButtonCallback(windowHandle, [](GLFWwindow* windowHandle, int buttonCode, int action, int) {
@@ -85,25 +84,24 @@ void GLFWWindow::open()
 		Key button = getMouse(buttonCode);
 
 		if (action == GLFW_PRESS || action == GLFW_REPEAT)
-			window->getInput()->logKeyPress(button);
+			window->input()->logKeyPress(button);
 		else
-			window->getInput()->logKeyRelease(button);
+			window->input()->logKeyRelease(button);
 	});
 
 	glfwSetCursorPosCallback(windowHandle, [](GLFWwindow* windowHandle, double posX, double posY) {
 		GLFWWindow* window = static_cast<GLFWWindow*>(glfwGetWindowUserPointer(windowHandle));
 
-		int lastX, lastY;
-		window->getMousePosition(lastX, lastY);
+		glm::ivec2 mousePosition = window->mousePosition();
 
 		int currentX = static_cast<int>(posX);
 		int currentY = static_cast<int>(posY);
 
-		int deltaX = currentX - lastX;
-		int deltaY = currentY - lastY;
+		int deltaX = currentX - mousePosition.x;
+		int deltaY = currentY - mousePosition.y;
 
-		window->getInput()->accumulateMouseMovement(glm::ivec2{ deltaX, deltaY });
-		window->setMousePosition(currentX, currentY);
+		window->input()->accumulateMouseMovement(glm::ivec2{ deltaX, deltaY });
+		window->setMousePosition(glm::ivec2{ currentX, currentY });
 	});
 }
 
@@ -137,6 +135,11 @@ void GLFWWindow::handleMessages()
 		throw std::runtime_error("Attempted to handle messages on an unopened window!");
 
 	glfwPollEvents();
+}
+
+void* GLFWWindow::handle() const
+{
+	return _windowHandle;
 }
 
 namespace

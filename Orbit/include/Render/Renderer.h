@@ -11,6 +11,7 @@
 namespace Orbit
 {
 	class Model;
+	class Window;
 
 	/*!
 	@brief Definition of the available API types in the system. Note that some aren't available for some platforms
@@ -40,10 +41,9 @@ namespace Orbit
 
 		/*!
 		@brief Function intended to initialize the renderer.
-		@param windowHandle The window's handle.
-		@param windowSize The window's size.
+		@param window A pointer to the window accepting the rendering.
 		*/
-		virtual void init(void* windowHandle, const glm::ivec2& windowSize) = 0;
+		virtual void init(const Window* window) = 0;
 
 		/*!
 		@brief Returns the renderer's API type. Useful when the framework requests an API type to set

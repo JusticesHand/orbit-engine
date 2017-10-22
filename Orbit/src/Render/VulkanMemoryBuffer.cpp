@@ -2,17 +2,24 @@
 
 #include "Render/VulkanMemoryBuffer.h"
 
+#include "Render/VulkanBase.h"
+
 #include "Render/VulkanUtils.h"
+
+#include <Util.h>
 
 using namespace Orbit;
 
+VulkanMemoryBuffer::VulkanMemoryBuffer(std::nullptr_t)
+{
+}
+
 VulkanMemoryBuffer::VulkanMemoryBuffer(
-	const vk::PhysicalDevice& physicalDevice,
-	const vk::Device& device,
+	std::shared_ptr<const VulkanBase> base,
 	const std::vector<vk::DeviceSize>& blockSizes,
 	vk::BufferCreateInfo createInfo,
 	vk::MemoryPropertyFlags memFlags)
-	: _device(device)
+	: _base(base)
 {
 	for (const vk::DeviceSize& size : blockSizes)
 		_totalSize += size;
@@ -22,46 +29,53 @@ VulkanMemoryBuffer::VulkanMemoryBuffer(
 
 	createInfo.setSize(_totalSize);
 
-	_buffer = _device.createBuffer(createInfo);
+	_buffer = _base->device().createBuffer(createInfo);
 
-	vk::MemoryRequirements requirements = _device.getBufferMemoryRequirements(_buffer);
-	uint32_t memoryTypeIndex = getMemoryTypeIndex(physicalDevice, requirements.memoryTypeBits, memFlags);
+	vk::MemoryRequirements requirements = _base->device().getBufferMemoryRequirements(_buffer);
+	uint32_t memoryTypeIndex = _base->getMemoryTypeIndex(requirements.memoryTypeBits, memFlags);
 
-	vk::MemoryAllocateInfo memAllocInfo{ requirements.size, memoryTypeIndex };
-	_memory = _device.allocateMemory(memAllocInfo);
+	vk::MemoryAllocateInfo memAllocInfo = vk::MemoryAllocateInfo()
+		.setAllocationSize(requirements.size)
+		.setMemoryTypeIndex(memoryTypeIndex);
+	
+	_memory = _base->device().allocateMemory(memAllocInfo);
 
-	_device.bindBufferMemory(_buffer, _memory, 0);
+	_base->device().bindBufferMemory(_buffer, _memory, 0);
 
 	vk::DeviceSize offset = 0;
 	_blocks.reserve(blockSizes.size());
 	for (const vk::DeviceSize& size : blockSizes)
 	{
-		_blocks.push_back(Block(device, _memory, size, offset));
+		_blocks.push_back(Block(_base, _memory, size, offset));
 		offset += size;
 	}
 }
 
 VulkanMemoryBuffer::VulkanMemoryBuffer(VulkanMemoryBuffer&& rhs)
-	: _device(rhs._device),
-	_buffer(rhs._buffer), 
+	: _base(rhs._base),
+	_buffer(rhs._buffer),
 	_memory(rhs._memory), 
 	_totalSize(rhs._totalSize),
 	_blocks(std::move(rhs._blocks))
 {
-	rhs._buffer = vk::Buffer();
-	rhs._memory = vk::DeviceMemory();
+	rhs._base = nullptr;
+
+	rhs._buffer = nullptr;
+	rhs._memory = nullptr;
 }
 
 VulkanMemoryBuffer& VulkanMemoryBuffer::operator=(VulkanMemoryBuffer&& rhs)
 {
-	_device = rhs._device;
+	_base = rhs._base;
 	_buffer = rhs._buffer;
 	_memory = rhs._memory;
 	_totalSize = rhs._totalSize;
 	_blocks = std::move(rhs._blocks);
 
-	rhs._buffer = vk::Buffer();
-	rhs._memory = vk::DeviceMemory();
+	rhs._base = nullptr;
+
+	rhs._buffer = nullptr;
+	rhs._memory = nullptr;
 
 	return *this;
 }
@@ -71,17 +85,26 @@ VulkanMemoryBuffer::~VulkanMemoryBuffer()
 	clear();
 }
 
-vk::CommandBuffer VulkanMemoryBuffer::transferToBuffer(VulkanMemoryBuffer& rhs, vk::CommandPool transferPool, vk::DeviceSize dstOffset)
+vk::CommandBuffer VulkanMemoryBuffer::transferToBuffer(VulkanMemoryBuffer& rhs, vk::DeviceSize dstOffset)
 {
 	if (dstOffset + _totalSize > rhs._totalSize)
 		throw std::runtime_error("Attempted to transfer buffers that do not match!");
 
-	vk::CommandBufferAllocateInfo allocInfo{ transferPool, vk::CommandBufferLevel::ePrimary, 1 };
-	vk::CommandBuffer cmdBuffer = _device.allocateCommandBuffers(allocInfo)[0];
+	vk::CommandBufferAllocateInfo allocInfo = vk::CommandBufferAllocateInfo()
+		.setCommandPool(_base->transferCommandPool())
+		.setLevel(vk::CommandBufferLevel::ePrimary)
+		.setCommandBufferCount(1);
+	
+	vk::CommandBuffer cmdBuffer = _base->device().allocateCommandBuffers(allocInfo)[0];
 
-	cmdBuffer.begin({ vk::CommandBufferUsageFlagBits::eOneTimeSubmit });
+	cmdBuffer.begin(vk::CommandBufferBeginInfo()
+		.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
 
-	vk::BufferCopy copyRegion{ 0, dstOffset, _totalSize };
+	vk::BufferCopy copyRegion = vk::BufferCopy()
+		.setSrcOffset(0)
+		.setDstOffset(dstOffset)
+		.setSize(_totalSize);
+
 	cmdBuffer.copyBuffer(_buffer, rhs._buffer, copyRegion);
 
 	cmdBuffer.end();
@@ -91,13 +114,14 @@ vk::CommandBuffer VulkanMemoryBuffer::transferToBuffer(VulkanMemoryBuffer& rhs, 
 
 void VulkanMemoryBuffer::clear()
 {
-	if (_buffer)
-		_device.destroyBuffer(_buffer);
-	if (_memory)
-		_device.freeMemory(_memory);
+	if (!_base)
+		return;
 
-	_buffer = vk::Buffer();
-	_memory = vk::DeviceMemory();
+	_base->device().destroyBuffer(_buffer);
+	_base->device().freeMemory(_memory);
+
+	_buffer = nullptr;
+	_memory = nullptr;
 
 	_totalSize = 0;
 	_blocks.clear();
@@ -113,25 +137,27 @@ VulkanMemoryBuffer::Block& VulkanMemoryBuffer::getBlock(size_t index)
 	return _blocks[index];
 }
 
+VulkanMemoryBuffer::Block& VulkanMemoryBuffer::operator[](size_t index)
+{
+	return getBlock(index);
+}
+
 VulkanMemoryBuffer::Block::Block(
-	vk::Device device,
+	std::shared_ptr<const VulkanBase> base,
 	vk::DeviceMemory memory,
 	vk::DeviceSize size,
 	vk::DeviceSize offset)
-	: _device(device), _memory(memory), _size(size), _offset(offset)
+	: _base(base), _memory(memory), _size(size), _offset(offset)
 {
 }
 
 void VulkanMemoryBuffer::Block::copy(const void* data, vk::DeviceSize size)
 {
-#if defined(_DEBUG)
-	if (size != _size)
-		throw std::runtime_error("Tried to copy memory of mismatching sizes!");
-#endif
+	ASSERT_DEBUG(size == _size, "Tried to copy memory of mismatching sizes!");
 
-	void* copyRegion = _device.mapMemory(_memory, _offset, size);
+	void* copyRegion = _base->device().mapMemory(_memory, _offset, size);
 	memcpy(copyRegion, data, size);
-	_device.unmapMemory(_memory);
+	_base->device().unmapMemory(_memory);
 }
 
 vk::DeviceSize VulkanMemoryBuffer::Block::size() const

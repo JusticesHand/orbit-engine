@@ -2,77 +2,52 @@
 
 #include "Render/VulkanRenderer.h"
 
+#include "Render/VulkanBase.h"
+
 #include <GLFW/glfw3.h>
 
 #include <iostream>
 #include <vector>
 #include <set>
 
-namespace Orbit
-{
-	/*!
-	@brief Debug callback function to be run by Vulkan in case of errors.
-	@param flags The flags of the debug error.
-	@param objType The type of the object that triggered the error.
-	@param obj The handle of the object that triggered the error.
-	@param location The location of the object that triggered the error.
-	@param code The error code.
-	@param layerPrefix The prefix of the layer that triggered the error.
-	@param msg The actual message of the error.
-	@param userData User data for the error.
-	@return Whether the error should abort the call or not. For the same behaviour as without
-	debugging layers enabled, it should return VK_FALSE (which it does).
-	*/
-	VKAPI_ATTR VkBool32 VKAPI_CALL debugCallbackFunc(
-		VkDebugReportFlagsEXT flags,
-		VkDebugReportObjectTypeEXT objType,
-		uint64_t obj,
-		size_t location,
-		int32_t code,
-		const char* layerPrefix,
-		const char* msg,
-		void* userData)
-	{
-		std::cerr << "validation layer (" << layerPrefix << "): " << msg << std::endl;
+#include <Render/Model.h>
 
-		return VK_FALSE;
-	}
-}
-
-constexpr const static std::array<const char*, 1> VALIDATION_LAYERS = {
-	"VK_LAYER_LUNARG_standard_validation"
-};
-
-constexpr const static std::array<const char*, 1> REQUIRED_EXTENSIONS = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
+#include "Input/Window.h"
 
 using namespace Orbit;
 
 VulkanRenderer::~VulkanRenderer()
 {
-	cleanup();
+	if (!_base)
+		return;
+
+	if (_base->device())
+		waitDeviceIdle();
+
+	//Buffer/stuff clearing
+	_base->device().destroySemaphore(_renderSemaphore);
+	_base->device().destroySemaphore(_imageSemaphore);
+
+	_modelBuffer.clear();
+	_transformBuffer.clear();
+	_animationBuffer.clear();
+
+	// Note that command buffers are destroyed upon command pool destruction when destroying the base.
+
+	_pipeline = nullptr;
+	_base = nullptr;
 }
 
-void VulkanRenderer::init(void* windowHandle, const glm::ivec2& windowSize)
+void VulkanRenderer::init(const Window* window)
 {
-	_instance = createInstance(windowHandle);
-	_debugCallback = createDebugCallback();
-	_surface = createSurface(windowHandle);
+	_base = std::make_shared<VulkanBase>(window);
+	_pipeline = std::make_shared<VulkanGraphicsPipeline>(_base, window->size());
+	
+	_secondaryGraphicsCommandBuffers.resize(_pipeline->framebuffers().size());
+	_primaryGraphicsCommandBuffers = createPrimaryCommandBuffers(*_pipeline);
 
-	_physicalDevice = pickPhysicalDevice();
-	_device = createDevice();
-
-	VulkanQueueFamilies queueFamilies = getQueueFamilies(_physicalDevice, _surface);
-	_graphicsQueue = _device.getQueue(queueFamilies.graphicsQueueFamily, 0);
-	_presentQueue = _device.getQueue(queueFamilies.presentQueueFamily, 0);
-	_transferQueue = _device.getQueue(queueFamilies.transferQueueFamily, 0);
-
-	_graphicsCommandPool = createCommandPool(queueFamilies.graphicsQueueFamily);
-	_transferCommandPool = createCommandPool(queueFamilies.transferQueueFamily);
-
-	_pipeline.init(windowSize, _physicalDevice, _device, _surface, _transferCommandPool);
-	_modelRenderer.init(_physicalDevice, _device, _pipeline, _graphicsCommandPool, _transferCommandPool);
+	_renderSemaphore = _base->device().createSemaphore({});
+	_imageSemaphore = _base->device().createSemaphore({});
 }
 
 RendererAPI VulkanRenderer::getAPI() const
@@ -82,14 +57,148 @@ RendererAPI VulkanRenderer::getAPI() const
 
 void VulkanRenderer::flagResize(const glm::ivec2& newSize)
 {
-	_presentQueue.waitIdle();
-	_pipeline.resize(newSize);
-	_modelRenderer.recreateBuffers(_pipeline);
+	_base->presentQueue().waitIdle();
+	_pipeline->resize(newSize);
+	
+	destroySecondaryBuffers(_secondaryGraphicsCommandBuffers);
+	createAllSecondaryCommandBuffers(_modelData, *_pipeline);
+
+	if (!_primaryGraphicsCommandBuffers.empty())
+		_base->device().freeCommandBuffers(_base->graphicsCommandPool(), _primaryGraphicsCommandBuffers);
+	_primaryGraphicsCommandBuffers.clear();
+
+	_primaryGraphicsCommandBuffers = createPrimaryCommandBuffers(*_pipeline);
 }
 
 void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)
 {
-	_modelRenderer.loadModels(models, _transferQueue);
+	waitDeviceIdle();
+
+	_modelData.clear();
+	_modelBuffer.clear();
+	_transformBuffer.clear();
+	//_animationBuffer.clear();
+
+	std::vector<vk::DeviceSize> modelDataBlocks;
+	modelDataBlocks.reserve(2 * models.size());
+
+	// Create transform buffer (sizes used later on)
+	std::vector<vk::DeviceSize> transformBlockSizes = { static_cast<vk::DeviceSize>(sizeof(glm::mat4)) };
+
+	_modelData.reserve(models.size());
+	size_t index = 0;
+	size_t instanceIndex = 0;
+
+	for (const Renderer::ModelCountPair& modelCountPair : models)
+	{
+		modelDataBlocks.push_back(static_cast<vk::DeviceSize>(modelCountPair.first->getVertices().size() * Vertex::size()));
+		modelDataBlocks.push_back(static_cast<vk::DeviceSize>(modelCountPair.first->getIndices().size() * sizeof(uint32_t)));
+	}
+
+	vk::BufferCreateInfo createInfo = vk::BufferCreateInfo()
+		.setUsage(vk::BufferUsageFlagBits::eTransferSrc)
+		.setSharingMode(vk::SharingMode::eExclusive);
+
+	VulkanMemoryBuffer vertexStagingBuffer{
+		_base,
+		modelDataBlocks,
+		createInfo,
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+	};
+
+	for (const Renderer::ModelCountPair& modelCountPair : models)
+	{
+		std::shared_ptr<Model> model = modelCountPair.first;
+
+		ModelData modelData;
+		modelData.weakModel = modelCountPair.first;
+		modelData.vertexIndex = index++;
+		modelData.indicesIndex = index++;
+
+		modelData.instanceCount = modelCountPair.second;
+		modelData.instanceIndex = instanceIndex++;
+
+		_modelData.push_back(modelData);
+
+		transformBlockSizes.push_back(static_cast<vk::DeviceSize>(modelData.instanceCount * sizeof(glm::mat4)));
+
+		vertexStagingBuffer[modelData.vertexIndex].copy(
+			model->getVertices().data(),
+			model->getVertices().size() * Vertex::size());
+
+		vertexStagingBuffer[modelData.indicesIndex].copy(
+			model->getIndices().data(),
+			model->getIndices().size() * sizeof(uint32_t));
+	}
+
+	// Create transform buffer. Still host coherent and cohesive, since it's going to be overwritten every frame anyways.
+	createInfo.setUsage(
+		vk::BufferUsageFlagBits::eUniformBuffer |
+		vk::BufferUsageFlagBits::eIndirectBuffer |
+		vk::BufferUsageFlagBits::eTransferDst);
+
+	_transformBuffer = VulkanMemoryBuffer{
+		_base,
+		transformBlockSizes,
+		createInfo,
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+	};
+
+	// Update the descriptor set to point to our new buffer.
+	vk::DescriptorSet descriptorSet = _pipeline->descriptorSet();
+	vk::DescriptorBufferInfo bufferInfo{ _transformBuffer.buffer(), 0Ui64, static_cast<vk::DeviceSize>(sizeof(glm::mat4)) };
+	vk::WriteDescriptorSet descriptorWrite;
+	descriptorWrite
+		.setDstSet(descriptorSet)
+		.setDstBinding(0)
+		.setDstArrayElement(0)
+		.setDescriptorType(vk::DescriptorType::eUniformBuffer)
+		.setDescriptorCount(1)
+		.setPBufferInfo(&bufferInfo);
+
+	_base->device().updateDescriptorSets(descriptorWrite, nullptr);
+
+	createInfo.setUsage(
+		vk::BufferUsageFlagBits::eVertexBuffer |
+		vk::BufferUsageFlagBits::eIndexBuffer |
+		vk::BufferUsageFlagBits::eTransferDst);
+
+	_modelBuffer = VulkanMemoryBuffer{
+		_base,
+		modelDataBlocks,
+		createInfo,
+		vk::MemoryPropertyFlagBits::eDeviceLocal
+	};
+
+	vk::CommandBuffer vertexTransferBuffer = vertexStagingBuffer.transferToBuffer(_modelBuffer);
+
+	//vk::Buffer textureStagingBuffer;
+	//vk::DeviceMemory textureStagingBufferMemory;
+	//vk::CommandBuffer textureTransferBuffer = buildTextureTransferCommand(models, textureStagingBuffer, textureStagingBufferMemory);
+
+	auto commands = make_array<vk::CommandBuffer>(vertexTransferBuffer); //, textureTransferBuffer
+
+	vk::SubmitInfo submit;
+	submit
+		.setCommandBufferCount(static_cast<uint32_t>(commands.size()))
+		.setPCommandBuffers(commands.data());
+
+	// Create the fence that will be used to synchronize transfer operations.
+	vk::Fence transferFence = _base->device().createFence({}); // Initially the fence is created in the unsignalled state
+
+	_base->transferQueue().submit(submit, transferFence);
+
+	_base->device().waitForFences(transferFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+
+	_base->device().destroyFence(transferFence);
+
+	vertexStagingBuffer.clear();
+	//_device.destroyBuffer(textureStagingBuffer);
+	//_device.freeMemory(textureStagingBufferMemory);
+
+	destroySecondaryBuffers(_secondaryGraphicsCommandBuffers);
+	_secondaryGraphicsCommandBuffers = createAllSecondaryCommandBuffers(_modelData, *_pipeline);
+	_primaryGraphicsCommandBuffers = createPrimaryCommandBuffers(*_pipeline, std::move(_primaryGraphicsCommandBuffers));
 }
 
 void VulkanRenderer::setupViewProjection(const glm::mat4& view, const glm::mat4& projection)
@@ -97,238 +206,217 @@ void VulkanRenderer::setupViewProjection(const glm::mat4& view, const glm::mat4&
 	// Flip the middle y coordinate to flip the matrix around (since vulkan is flipped on that coordinate vs OGL).
 	glm::mat4 flippedProjection = projection;
 	flippedProjection[1][1] *= -1;
-	_modelRenderer.setupViewProjection(flippedProjection * view);
+	glm::mat4 viewProjection = flippedProjection * view;
+	_transformBuffer[0].copy(&viewProjection, static_cast<vk::DeviceSize>(sizeof(glm::mat4)));
 }
 
 void VulkanRenderer::queueRender(const std::vector<ModelTransformsPair>& modelTransforms)
 {
-	_modelRenderer.updateTransforms(modelTransforms);
+	// _modelData (loaded by loadModel()) is assumed to be in the same order as these transforms. Same goes for instances.
+	// They are intended to be traversed by visitors in the tree - as the tree's general state is assumed to not change without
+	// re-recording command buffers (and rebuilding GPU state) this is a non-issue.
+	// This changes every frame.
+
+	if (modelTransforms.size() != _modelData.size())
+		throw std::runtime_error("Renderer is in a weird state!");
+
+	for (size_t i = 0; i < modelTransforms.size(); i++)
+	{
+		const Renderer::ModelTransformsPair& modelTransform = modelTransforms[i];
+		const ModelData& modelData = _modelData[i];
+
+		_transformBuffer.getBlock(i + 1).copy(
+			modelTransform.second.data(),
+			static_cast<vk::DeviceSize>(modelTransform.second.size() * sizeof(glm::mat4)));
+	}
 }
 
 void VulkanRenderer::renderFrame()
 {
-	_modelRenderer.renderFrame(_graphicsQueue, _presentQueue);
+	waitDeviceIdle();
+
+	vk::SwapchainKHR swapchain = _pipeline->swapchain();
+	auto imageResult = _base->device().acquireNextImageKHR(swapchain, std::numeric_limits<uint64_t>::max(), _imageSemaphore, nullptr);
+
+	if (imageResult.result != vk::Result::eSuccess)
+		throw std::runtime_error("Could not acquire next image!");
+
+	uint32_t imageIndex = imageResult.value;
+
+	vk::PipelineStageFlags waitStages = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+
+	std::array<vk::SubmitInfo, 1> submitInfos;
+	submitInfos[0]
+		.setWaitSemaphoreCount(1)
+		.setPWaitSemaphores(&_imageSemaphore)
+		.setPWaitDstStageMask(&waitStages)
+		.setCommandBufferCount(1)
+		.setPCommandBuffers(&_primaryGraphicsCommandBuffers[imageIndex])
+		.setSignalSemaphoreCount(1)
+		.setPSignalSemaphores(&_renderSemaphore);
+
+	_base->graphicsQueue().submit(submitInfos, nullptr);
+
+	vk::PresentInfoKHR presentInfo;
+	presentInfo
+		.setWaitSemaphoreCount(1)
+		.setPWaitSemaphores(&_renderSemaphore)
+		.setSwapchainCount(1)
+		.setPSwapchains(&swapchain)
+		.setPImageIndices(&imageIndex);
+
+	_base->presentQueue().presentKHR(presentInfo);
 }
 
 void VulkanRenderer::waitDeviceIdle()
 {
-	_device.waitIdle();
+	_base->device().waitIdle();
 }
 
-void VulkanRenderer::cleanup()
+std::vector<vk::CommandBuffer> VulkanRenderer::createPrimaryCommandBuffers(
+	const VulkanGraphicsPipeline& pipeline)
 {
-	waitDeviceIdle();
+	vk::CommandBufferAllocateInfo allocInfo = vk::CommandBufferAllocateInfo()
+		.setCommandPool(_base->graphicsCommandPool())
+		.setLevel(vk::CommandBufferLevel::ePrimary)
+		.setCommandBufferCount(static_cast<uint32_t>(_pipeline->framebuffers().size()));
 
-	_modelRenderer.cleanup();
-	_pipeline.cleanup();
-
-	_device.destroyCommandPool(_transferCommandPool);
-	_device.destroyCommandPool(_graphicsCommandPool);
-
-	_device.destroy();
-	
-	_instance.destroySurfaceKHR(_surface);
-	destroyDebugCallback();
-	_instance.destroy();
+	return createPrimaryCommandBuffers(pipeline, _base->device().allocateCommandBuffers(allocInfo));
 }
 
-vk::Instance VulkanRenderer::createInstance(void* windowHandle)
+std::vector<vk::CommandBuffer> VulkanRenderer::createPrimaryCommandBuffers(
+	const VulkanGraphicsPipeline& pipeline,
+	std::vector<vk::CommandBuffer>&& oldBuffers)
 {
-	GLFWwindow* window = reinterpret_cast<GLFWwindow*>(windowHandle);
+	std::vector<vk::CommandBuffer> commandBuffers = std::move(oldBuffers);
+	const std::vector<vk::Framebuffer>& framebuffers = pipeline.framebuffers();
 
-	std::vector<const char*> requiredExtensions;
+	if (commandBuffers.size() != framebuffers.size())
+		throw std::runtime_error("Renderer is in a weird state!");
 
-	if (VALIDATION_LAYERS.size() > 0)
-		requiredExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
-
-	unsigned int glfwExtensionCount = 0;
-	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-	for (unsigned int i = 0; i < glfwExtensionCount; i++)
-		requiredExtensions.push_back(glfwExtensions[i]);
-
-	vk::ApplicationInfo applicationInfo;
-	applicationInfo.setApiVersion(VK_API_VERSION_1_0)
-		.setPApplicationName("Orbit Engine")
-		.setApplicationVersion(VK_MAKE_VERSION(1, 0, 0))
-		.setPEngineName("Orbit Engine")
-		.setEngineVersion(VK_MAKE_VERSION(1, 0, 0));
-
-	vk::InstanceCreateInfo createInfo;
-	createInfo
-		.setEnabledExtensionCount(static_cast<uint32_t>(requiredExtensions.size()))
-		.setPpEnabledExtensionNames(requiredExtensions.data())
-		.setPApplicationInfo(&applicationInfo)
-		.setEnabledLayerCount(static_cast<uint32_t>(VALIDATION_LAYERS.size()))
-		.setPpEnabledLayerNames(VALIDATION_LAYERS.data());
-	
-	return vk::createInstance(createInfo);
-}
-
-vk::DebugReportCallbackEXT VulkanRenderer::createDebugCallback()
-{
-	// Don't create if we don't have to, obviously.
-	if (VALIDATION_LAYERS.size() == 0)
-		return nullptr;
-
-	// Precondition: have the vulkan instance created.
-	if (!_instance)
-		throw std::runtime_error("The vulkan instance was not initialized before trying to create a debug callback!");
-
-	PFN_vkCreateDebugReportCallbackEXT func = 
-		(PFN_vkCreateDebugReportCallbackEXT)_instance.getProcAddr("vkCreateDebugReportCallbackEXT");
-
-	if (!func)
-		throw std::runtime_error("Attempted to create a debug callback, but the extension is not present!");
-
-	vk::DebugReportCallbackCreateInfoEXT createInfo;
-	createInfo
-		.setFlags(vk::DebugReportFlagBitsEXT::eError | vk::DebugReportFlagBitsEXT::eWarning | vk::DebugReportFlagBitsEXT::ePerformanceWarning)
-		.setPfnCallback(debugCallbackFunc);
-
-	VkDebugReportCallbackCreateInfoEXT cCreateInfo = static_cast<VkDebugReportCallbackCreateInfoEXT>(createInfo);
-
-	VkDebugReportCallbackEXT debugReportCallback;
-	if (VK_SUCCESS != func(static_cast<VkInstance>(_instance), &cCreateInfo, nullptr, &debugReportCallback))
-		throw std::runtime_error("There was an error creating the debug report callback!");
-
-	return vk::DebugReportCallbackEXT(debugReportCallback);
-}
-
-vk::SurfaceKHR VulkanRenderer::createSurface(void* windowHandle)
-{
-	// Precondition: have the vulkan instance created.
-	if (!_instance)
-		throw std::runtime_error("The vulkan instance was not initialized before trying to create a window surface!");
-
-	GLFWwindow* window = reinterpret_cast<GLFWwindow*>(windowHandle);
-
-	VkSurfaceKHR surface;
-	if (VK_SUCCESS != glfwCreateWindowSurface(_instance, window, nullptr, &surface))
-		throw std::runtime_error("Therre was an error creating the window surface!");
-
-	return vk::SurfaceKHR(surface);
-}
-
-vk::PhysicalDevice VulkanRenderer::pickPhysicalDevice()
-{
-	// Precondition: have the vulkan instance created and the surface created.
-	if (!_instance)
-		throw std::runtime_error("The vulkan instance was not initialized before trying to pick a physical device!");
-	if (!_surface)
-		throw std::runtime_error("The surface was not created before trying to pick a physical device!");
-
-	std::vector<vk::PhysicalDevice> systemDevices = _instance.enumeratePhysicalDevices();
-	if (systemDevices.empty())
-		throw std::runtime_error("Could not find a physical device that supports Vulkan!");
-
-	vk::PhysicalDevice bestDevice;
-
-	for (const vk::PhysicalDevice& device : systemDevices)
+	for (size_t i = 0; i < commandBuffers.size(); i++)
 	{
-		vk::PhysicalDeviceProperties deviceProperties = device.getProperties();
-		vk::PhysicalDeviceFeatures deviceFeatures = device.getFeatures();
-		std::vector<vk::ExtensionProperties> extensionProperties = device.enumerateDeviceExtensionProperties();
+		vk::CommandBuffer& commandBuffer = commandBuffers[i];
+		const vk::Framebuffer& framebuffer = framebuffers[i];
+		const std::vector<vk::CommandBuffer>& secondaryCommandBuffers = _secondaryGraphicsCommandBuffers[i];
 
-		// TODO: More checks here to get a more suitable device if applicable as the renderer becomes
-		// more complex.
+		commandBuffer.begin(vk::CommandBufferBeginInfo()
+			.setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
 
-		// Check whether or not the device can actually render on our surface, which is pretty important
-		// considering we're attempting to do some rendering.
-		// Applying negative logic here saves simplifies code.
-		std::set<std::string> requiredExtensions(REQUIRED_EXTENSIONS.begin(), REQUIRED_EXTENSIONS.end());
-		for (const vk::ExtensionProperties& extension : extensionProperties)
-			requiredExtensions.erase(extension.extensionName);
+		std::array<vk::ClearValue, 2> clearValues = {
+			vk::ClearValue().setColor(std::array<float, 4>{ 0.f, 0.f, 0.f, 0.f }),
+			vk::ClearValue().setDepthStencil(vk::ClearDepthStencilValue{ 1.f, 0 })
+		};
 
-		if (!requiredExtensions.empty())
-			continue;
+		vk::Rect2D renderArea = vk::Rect2D()
+			.setOffset(vk::Offset2D{ 0, 0 })
+			.setExtent(pipeline.swapExtent());
 
-		// Now we know that we have the required extensions, but do we have the required swap chain support?
-		std::vector<vk::SurfaceFormatKHR> formats = device.getSurfaceFormatsKHR(_surface);
-		std::vector<vk::PresentModeKHR> presentModes = device.getSurfacePresentModesKHR(_surface);
-		if (formats.empty() || presentModes.empty())
-			continue;
+		vk::RenderPassBeginInfo renderPassBeginInfo = vk::RenderPassBeginInfo()
+			.setRenderPass(pipeline.renderPass())
+			.setFramebuffer(framebuffer)
+			.setRenderArea(renderArea)
+			.setClearValueCount(static_cast<uint32_t>(clearValues.size()))
+			.setPClearValues(clearValues.data());
 
-		// Check for device queues - there should at least be graphics, present and transfer queues
-		// (which might overlap, and that doesn't really matter).
-		VulkanQueueFamilies queueFamilies = getQueueFamilies(device, _surface);
-		if (queueFamilies.graphicsQueueFamily == -1 ||
-			queueFamilies.presentQueueFamily == -1 ||
-			queueFamilies.transferQueueFamily == -1)
-			continue;
+		commandBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eSecondaryCommandBuffers);
 
-		// Always prefer discrete GPUs over integrated (or virtual).
-		if (deviceProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
-			return device;
+		if (!secondaryCommandBuffers.empty())
+			commandBuffer.executeCommands(secondaryCommandBuffers);
 
-		if (deviceProperties.deviceType == vk::PhysicalDeviceType::eIntegratedGpu ||
-			deviceProperties.deviceType == vk::PhysicalDeviceType::eVirtualGpu)
-			bestDevice = device;
+		commandBuffer.endRenderPass();
+		commandBuffer.end();
 	}
 
-	if (!bestDevice)
-		throw std::runtime_error("Could not choose a suitable physical device that support Vulkan!");
-
-	return bestDevice;
+	return commandBuffers;
 }
 
-vk::Device VulkanRenderer::createDevice()
+void VulkanRenderer::destroySecondaryBuffers(std::vector<std::vector<vk::CommandBuffer>>& secondaryBuffers)
 {
-	// Precondition: have a picked physical device.
-	if (!_physicalDevice)
-		throw std::runtime_error("The physical device was not chosen before attempting to create a logical device!");
+	for (std::vector<vk::CommandBuffer>& secondaryBuffer : secondaryBuffers)
+		if (!secondaryBuffer.empty())
+			_base->device().freeCommandBuffers(_base->graphicsCommandPool(), secondaryBuffer);
+	secondaryBuffers.clear();
+}
 
-	VulkanQueueFamilies queueFamilies = getQueueFamilies(_physicalDevice, _surface);
-	std::set<uint32_t> uniqueQueues{ queueFamilies.graphicsQueueFamily, queueFamilies.presentQueueFamily, queueFamilies.transferQueueFamily };
-	std::vector<vk::DeviceQueueCreateInfo> queueCreateInfos;
-	queueCreateInfos.reserve(uniqueQueues.size());
+std::vector<std::vector<vk::CommandBuffer>> VulkanRenderer::createAllSecondaryCommandBuffers(
+	const std::vector<ModelData>& modelData,
+	const VulkanGraphicsPipeline& pipeline)
+{
+	std::vector<std::vector<vk::CommandBuffer>> secondaryCommandBuffers;
 
-	for (uint32_t queueFamily : uniqueQueues)
+	const std::vector<vk::Framebuffer>& framebuffers = pipeline.framebuffers();
+	secondaryCommandBuffers.reserve(framebuffers.size());
+	for (const vk::Framebuffer& framebuffer : framebuffers)
+		secondaryCommandBuffers.push_back(createSecondaryCommandBuffers(modelData, pipeline, framebuffer));
+
+	return secondaryCommandBuffers;
+}
+
+std::vector<vk::CommandBuffer> VulkanRenderer::createSecondaryCommandBuffers(
+	const std::vector<ModelData>& modelData,
+	const VulkanGraphicsPipeline& pipeline,
+	const vk::Framebuffer& framebuffer)
+{
+	if (_modelData.empty())
+		return std::vector<vk::CommandBuffer>();
+
+	vk::CommandBufferAllocateInfo allocInfo = vk::CommandBufferAllocateInfo()
+		.setCommandBufferCount(static_cast<uint32_t>(modelData.size()))
+		.setCommandPool(_base->graphicsCommandPool())
+		.setLevel(vk::CommandBufferLevel::eSecondary);
+
+	std::vector<vk::CommandBuffer> secondaryBuffers = _base->device().allocateCommandBuffers(allocInfo);
+
+	for (size_t i = 0; i < secondaryBuffers.size(); i++)
 	{
-		const float queuePriority = 1.0f;
+		vk::CommandBuffer& secondaryBuffer = secondaryBuffers[i];
+		const ModelData& modelData = _modelData[i];
 
-		vk::DeviceQueueCreateInfo queueCreateInfo;
-		queueCreateInfo
-			.setQueueFamilyIndex(queueFamily)
-			.setQueueCount(1)
-			.setPQueuePriorities(&queuePriority);
+		std::shared_ptr<Model> model = modelData.weakModel.lock();
+		if (!model)
+			throw std::runtime_error("Attempted to render an unloaded model!");
 
-		queueCreateInfos.push_back(queueCreateInfo);
+		vk::CommandBufferInheritanceInfo inheritanceInfo = vk::CommandBufferInheritanceInfo()
+			.setRenderPass(pipeline.renderPass())
+			.setSubpass(0)
+			.setFramebuffer(framebuffer);
+
+		secondaryBuffer.begin(vk::CommandBufferBeginInfo()
+			.setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse | vk::CommandBufferUsageFlagBits::eRenderPassContinue)
+			.setPInheritanceInfo(&inheritanceInfo));
+
+		secondaryBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.graphicsPipeline());
+		secondaryBuffer.bindDescriptorSets(
+			vk::PipelineBindPoint::eGraphics, 
+			pipeline.pipelineLayout(),
+			0U, 
+			pipeline.descriptorSet(),
+			nullptr);
+
+		// TODO: Add animation data to buffers and offsets (and shaders, and descriptor sets, etc etc)
+		std::array<vk::Buffer, 2> buffers = {
+			_modelBuffer.buffer(),
+			_transformBuffer.buffer()
+		};
+
+		std::array<vk::DeviceSize, 2> offsets = {
+			_modelBuffer[modelData.vertexIndex].offset(),
+			_transformBuffer[modelData.instanceIndex + 1].offset()
+		};
+
+		secondaryBuffer.bindVertexBuffers(0, buffers, offsets);
+		secondaryBuffer.bindIndexBuffer(_modelBuffer.buffer(), _modelBuffer[modelData.indicesIndex].offset(), vk::IndexType::eUint32);
+
+		secondaryBuffer.drawIndexed(
+			static_cast<uint32_t>(model->getIndices().size()),
+			static_cast<uint32_t>(modelData.instanceCount),
+			0,
+			0,
+			0);
+
+		secondaryBuffer.end();
 	}
 
-	vk::PhysicalDeviceFeatures deviceFeatures;
-
-	vk::DeviceCreateInfo createInfo;
-	createInfo
-		.setQueueCreateInfoCount(static_cast<uint32_t>(queueCreateInfos.size()))
-		.setPQueueCreateInfos(queueCreateInfos.data())
-		.setPEnabledFeatures(&deviceFeatures)
-		.setEnabledExtensionCount(static_cast<uint32_t>(REQUIRED_EXTENSIONS.size()))
-		.setPpEnabledExtensionNames(REQUIRED_EXTENSIONS.data())
-		.setEnabledLayerCount(static_cast<uint32_t>(VALIDATION_LAYERS.size()))
-		.setPpEnabledLayerNames(VALIDATION_LAYERS.data());
-
-	return _physicalDevice.createDevice(createInfo);
-}
-
-vk::CommandPool VulkanRenderer::createCommandPool(int family)
-{
-	vk::CommandPoolCreateInfo createInfo;
-	createInfo
-		.setQueueFamilyIndex(family)
-		.setFlags(vk::CommandPoolCreateFlagBits::eTransient | vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
-
-	return _device.createCommandPool(createInfo);
-}
-
-void VulkanRenderer::destroyDebugCallback()
-{
-	if (!_debugCallback || !_instance)
-		return;
-
-	PFN_vkDestroyDebugReportCallbackEXT func = 
-		(PFN_vkDestroyDebugReportCallbackEXT)_instance.getProcAddr("vkDestroyDebugReportCallbackEXT");
-
-	if (func)
-		func(static_cast<VkInstance>(_instance), static_cast<VkDebugReportCallbackEXT>(_debugCallback), nullptr);
+	return secondaryBuffers;
 }

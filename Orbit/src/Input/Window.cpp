@@ -8,31 +8,34 @@
 
 using namespace Orbit;
 
-Window::Window(int width, int height, const std::string& title, bool fullscreen)
-	: _width(width), _height(height), _title(title), _fullscreen(fullscreen)
+Window::Window(const glm::ivec2& size, const std::string& title, bool fullscreen)
+	: _size(size), _title(title), _fullscreen(fullscreen), _input(std::make_unique<Input>())
 {
 }
 
 Window::~Window() = default;
 
-Renderer* Window::getRenderer() const
+Renderer* Window::renderer() const
 {
 	return _renderer.get();
 }
 
-Input* Window::getInput() const
+Input* Window::input() const
 {
 	return _input.get();
 }
 
-void Window::getMousePosition(int& x, int& y)
+glm::ivec2 Window::size() const
 {
-	x = _x;
-	y = _y;
+	return _size;
 }
 
-void Window::setMousePosition(int x, int y)
+glm::ivec2 Window::mousePosition() const
 {
-	_x = x;
-	_y = y;
+	return _mousePos;
+}
+
+void Window::setMousePosition(const glm::ivec2& pos)
+{
+	_mousePos = pos;
 }

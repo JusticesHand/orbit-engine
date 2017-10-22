@@ -66,9 +66,6 @@
     <ClInclude Include="include\Render\VulkanUtils.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
-    <ClInclude Include="include\Render\VulkanModelRenderer.h">
-      <Filter>Header Files\Render</Filter>
-    </ClInclude>
     <ClInclude Include="include\Render\VulkanMemoryBuffer.h">
       <Filter>Header Files\Render</Filter>
     </ClInclude>
@@ -96,6 +93,9 @@
     <ClInclude Include="include\Task\TaskRunner.h">
       <Filter>Header Files\Task</Filter>
     </ClInclude>
+    <ClInclude Include="include\Render\VulkanBase.h">
+      <Filter>Header Files\Render</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -119,9 +119,6 @@
     <ClCompile Include="src\Render\VulkanUtils.cpp">
       <Filter>Source Files\Render</Filter>
     </ClCompile>
-    <ClCompile Include="src\Render\VulkanModelRenderer.cpp">
-      <Filter>Source Files\Render</Filter>
-    </ClCompile>
     <ClCompile Include="src\Render\VulkanMemoryBuffer.cpp">
       <Filter>Source Files\Render</Filter>
     </ClCompile>
@@ -139,6 +136,9 @@
     </ClCompile>
     <ClCompile Include="src\Input\GLFWWindowLibrary.cpp">
       <Filter>Source Files\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Render\VulkanBase.cpp">
+      <Filter>Source Files\Render</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

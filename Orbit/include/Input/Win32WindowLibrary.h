@@ -20,12 +20,11 @@ namespace Orbit
 	public:
 		/*!
 		@brief Returns a new instance of Orbit::Window, as an instance of Orbit::Win32Window.
-		@param width The desired width of the window.
-		@param height The desired height of the window.
+		@param size The desired size of the window.
 		@param title The desired title of the window.
 		@param fullscreen Whether or not the window should be created full screen.
 		*/
-		std::unique_ptr<Window> createWindow(int width, int height, std::string title, bool fullscreen) override;
+		std::unique_ptr<Window> createWindow(const glm::ivec2& size, const std::string& title, bool fullscreen) override;
 	};
 }
 

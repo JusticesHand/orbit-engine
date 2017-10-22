@@ -34,6 +34,13 @@
 #define ORBIT_API
 #endif
 
+/*! Definition of debug assertion macro. Does not compile check on release. */
+#if defined(_DEBUG)
+#define ASSERT_DEBUG(test, message) if (!test) throw std::runtime_error(message)
+#else
+#define ASSERT_DEBUG(test, message)
+#endif
+
 namespace Orbit
 {
 	/*!

@@ -7,6 +7,8 @@
 #include <string>
 #include <memory>
 
+#include <glm/glm.hpp>
+
 namespace Orbit
 {
 	class Input;
@@ -21,12 +23,11 @@ namespace Orbit
 		/*!
 		@brief Constructor for the class. Simply sets the properties of the class to those in parameter -
 		all the actual work is to be done by specializations.
-		@param width The requested width of the window.
-		@param height The requested height of the window.
+		@param size The requested size of the window.
 		@param title The requested title of the window.
 		@param fullscreen Whether or not the window should be fullscreen.
 		*/
-		explicit Window(int width, int height, const std::string& title, bool fullscreen);
+		explicit Window(const glm::ivec2& size, const std::string& title, bool fullscreen);
 
 		/*!
 		@brief Destructor for the class.
@@ -65,12 +66,18 @@ namespace Orbit
 		virtual void handleMessages() = 0;
 
 		/*!
+		@brief Getter for the window's handle.
+		@return The window's handle.
+		*/
+		virtual void* handle() const = 0;
+
+		/*!
 		@brief Returns the renderer built alongside the window. The renderer allows graphics to be drawn on the
 		Window surface. Renderers can be changed at compile-time. Returns a raw pointer as an std::observer_ptr
 		type is unavailable in the vc++ in VS Community 2017.
 		@return The renderer for the window.
 		*/
-		virtual Renderer* getRenderer() const;
+		virtual Renderer* renderer() const;
 
 		/*!
 		@brief Returns the input handler built alongside the window. Ideally this input handler would be created
@@ -79,27 +86,29 @@ namespace Orbit
 		will have to do.
 		@return The input handler for the window.
 		*/
-		virtual Input* getInput() const;
+		virtual Input* input() const;
+
+		/*!
+		@brief Getter for the window's size.
+		@return The window's size.
+		*/
+		glm::ivec2 size() const;
 
 		/*!
 		@brief Getter for the mouse position. Useful in callbacks.
-		@param[out] x The x position of the mouse.
-		@param[out] y The y position of the mouse.
+		@return The mouse's position.
 		*/
-		void getMousePosition(int& x, int& y);
+		glm::ivec2 mousePosition() const;
 
 		/*!
 		@brief Setter for the mouse position. Useful in callbacks.
-		@param x The x position of the mouse.
-		@param y The y position of the mouse.
+		@param pos The new mouse position.
 		*/
-		void setMousePosition(int x, int y);
+		void setMousePosition(const glm::ivec2& pos);
 
 	protected:
-		/*! The width of the window. */
-		int _width;
-		/*! The height of the window. */
-		int _height;
+		/*! The size of the window. On resize, it's the subclass's job to update this value. */
+		glm::ivec2 _size;
 
 		/*! The title of the window. */
 		std::string _title;
@@ -112,10 +121,8 @@ namespace Orbit
 		/*! A unique pointer to the window's input. */
 		std::unique_ptr<Input> _input;
 
-		/*! X position for the mouse. */
-		int _x = 0;
-		/*! Y position for the mouse. */
-		int _y = 0;
+		/*! The mouse's position. */
+		glm::ivec2 _mousePos;
 	};
 }
 

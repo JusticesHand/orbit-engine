@@ -17,12 +17,11 @@ namespace Orbit
 		/*!
 		@brief Constructor for the class. Only sets the property values for the class (by calling the base constructor),
 		as initialization is to be done when calling the GLFWWindow::open() method.
-		@param width The requested width of the window.
-		@param height The requested height of the window.
+		@param size The requested size of the window.
 		@param title The requested title of the window.
 		@param fullscreen Whether or not the window should be fullscreen.
 		*/
-		explicit GLFWWindow(int width, int height, const std::string& title, bool fullscreen);
+		explicit GLFWWindow(const glm::ivec2& size, const std::string& title, bool fullscreen);
 
 		/*!
 		@brief Ensures that the window is properly cleaned up.
@@ -43,6 +42,12 @@ namespace Orbit
 
 		/*! @copydoc Window::handleMessages() */
 		void handleMessages() override;
+
+		/*!
+		@brief Getter for the window's handle.
+		@return The window's handle.
+		*/
+		void* handle() const override;
 
 	private:
 		/*! Handle for the window. */

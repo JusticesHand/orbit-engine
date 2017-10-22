@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
 		std::unique_ptr<WindowLibrary> windowLib = std::make_unique<WINDOWLIB>();
 
 		// TODO: Initialization with options.
-		std::unique_ptr<Window> window = windowLib->createWindow(1280, 720, "Hello World", false);
+		std::unique_ptr<Window> window = windowLib->createWindow(glm::ivec2{ 1280, 720 }, "Hello World", false);
 
 		window->open();
 
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 		},
 		[&window]() {
 			window->handleMessages();
-			window->getRenderer()->renderFrame();
+			window->renderer()->renderFrame();
 		});
 
 		runner.joinAll();

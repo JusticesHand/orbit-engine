@@ -46,7 +46,7 @@ void Game::initialize()
 	_mainModule->load();
 
 	// TEMP
-	glm::ivec2 windowSize = _window->getInput()->windowSize();
+	glm::ivec2 windowSize = _window->input()->windowSize();
 	_projection.setFoV(glm::radians(45.f));
 	_projection.setAspectRatio(windowSize.x / static_cast<float>(windowSize.y));
 	_projection.setZNear(0.1f);
@@ -73,7 +73,7 @@ void Game::initialize()
 	loadScene(std::move(initialScene));
 
 	// Temporary test: register Spacebar to "Fire".
-	_window->getInput()->registerVirtualKey("Fire", Key::Code::Space);
+	_window->input()->registerVirtualKey("Fire", Key::Code::Space);
 
 	// Begin the update thread.
 	_taskRunner.runAsync(144, [this] {
@@ -107,7 +107,7 @@ bool Game::shouldClose() const
 void Game::update(std::chrono::nanoseconds elapsedTime)
 {
 	// Lock the mouse movement for the current frame.
-	_window->getInput()->lockMouseMovement();
+	_window->input()->lockMouseMovement();
 
 	updateScene();
 
@@ -115,15 +115,15 @@ void Game::update(std::chrono::nanoseconds elapsedTime)
 
 	_tree->acceptVisitor(&_visitor);
 	if (_visitor.modelCountsChanged())
-		_window->getRenderer()->loadModels(_visitor.modelCounts());
+		_window->renderer()->loadModels(_visitor.modelCounts());
 
 	if (_tree->getCamera() == nullptr)
 		throw std::runtime_error("Scene has no camera to render!");
 
 	glm::mat4 view = _tree->getCamera()->getViewMatrix();
 	glm::mat4 projection = _projection.getMatrix();
-	_window->getRenderer()->setupViewProjection(view, projection);
-	_window->getRenderer()->queueRender(_visitor.treeState());
+	_window->renderer()->setupViewProjection(view, projection);
+	_window->renderer()->queueRender(_visitor.treeState());
 
 	_visitor.flushModelCounts();
 }
@@ -146,6 +146,6 @@ void Game::updateScene()
 	_currentScene = std::move(_nextScene);
 	_nextScene = nullptr;
 
-	_currentScene->loadFactories(*_window->getInput());
+	_currentScene->loadFactories(*_window->input());
 	_currentScene->load(*_tree);
 }

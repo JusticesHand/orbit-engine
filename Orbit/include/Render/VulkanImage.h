@@ -4,10 +4,14 @@
 #define RENDER_VULKANIMAGE_H
 #pragma once
 
+#include <memory>
+
 #include <vulkan/vulkan.hpp>
 
 namespace Orbit
 {
+	class VulkanBase;
+
 	/*!
 	@brief Wrapper class containing a vk::Image and its associated memory.
 	As of right now, it is a one-to-one association - as in, each image object has its own memory.
@@ -19,26 +23,19 @@ namespace Orbit
 		/*!
 		@brief Default constructor for the class. Leaves everything in a non-initialized (and unusable) state.
 		*/
-		VulkanImage() = default;
+		VulkanImage(std::nullptr_t);
 
 		/*!
 		@brief Initializing constructor for the class. Creates and allocates resources with the objects in
 		param.
-		@param physicalDevice The physical device that will contain the image.
-		@param device The logical device that will be used to create resources.
+		@param base The renderer's base.
 		@param imageCreateInfo Create info struct for the image.
 		@param memFlags The memory requirement flags for the image.
 		*/
 		explicit VulkanImage(
-			const vk::PhysicalDevice& physicalDevice,
-			const vk::Device& device,
+			std::shared_ptr<const VulkanBase> base,
 			vk::ImageCreateInfo imageCreateInfo,
 			vk::MemoryPropertyFlags memFlags);
-
-		/*!
-		@brief Destructor for the class. Frees all created resources.
-		*/
-		~VulkanImage();
 
 		VulkanImage(const VulkanImage&) = delete;
 		VulkanImage& operator=(const VulkanImage&) = delete;
@@ -55,6 +52,11 @@ namespace Orbit
 		@return A reference to this.
 		*/
 		VulkanImage& operator=(VulkanImage&& rhs);
+
+		/*!
+		@brief Destructor for the class. Frees all created resources.
+		*/
+		~VulkanImage();
 
 		/*!
 		@brief Getter for the image's format.
@@ -88,8 +90,8 @@ namespace Orbit
 		vk::CommandBuffer transitionLayout(vk::ImageLayout newLayout, vk::CommandPool transferPool);
 
 	private:
-		/*! The logical device used to create and modify the image. */
-		vk::Device _device;
+		/*! The renderer's base. */
+		std::shared_ptr<const VulkanBase> _base;
 
 		/*! The image object itself. */
 		vk::Image _image;

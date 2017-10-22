@@ -11,16 +11,18 @@
 /*! Define the RENDERER macro to the class of the used renderer, for easier preprocessor-defined compilation. */
 #define RENDERER Orbit::VulkanRenderer
 
-#include "VulkanUtils.h"
-
+#include "Renderer.h"
 #include "VulkanGraphicsPipeline.h"
-#include "VulkanModelRenderer.h"
+#include "VulkanMemoryBuffer.h"
 
-#include "Render/Renderer.h"
+#include <memory>
+
 #include <vulkan/vulkan.hpp>
 
 namespace Orbit
 {
+	class VulkanBase;
+
 	/*!
 	@brief Implementation of the Renderer virtual class, using Vulkan for rendering operations.
 	Most of the work is done in the member classes Orbit::VulkanGraphicsPipeline and
@@ -43,10 +45,9 @@ namespace Orbit
 		/*!
 		@brief Initializes the renderer. Creates (and retrieves) base Vulkan objects and handles
 		their lifetimes, before calling the members' initialization methods.
-		@param windowHandle A handle to the window on which to render.
-		@param windowSize The size of the window.
+		@param window A pointer to the window that will accept the rendering.
 		*/
-		void init(void* windowHandle, const glm::ivec2& windowSize) override;
+		void init(const Window* window) override;
 
 		/*!
 		@brief Returns a value for the Renderer's API.
@@ -92,82 +93,96 @@ namespace Orbit
 		void waitDeviceIdle() override;
 
 	private:
-		/*!
-		@brief Cleans up everything in the object.
-		*/
-		void cleanup();
 
 		/*!
-		@brief Helper function to create a Vulkan Instance.
-		@param windowHandle The handle of the window.
-		@return A newly created Vulkan Instance.
+		@brief Definition of model data, determining where in memory models (and its data) is located.
 		*/
-		vk::Instance createInstance(void* windowHandle);
+		struct ModelData
+		{
+			/*! Weak pointer reference to the model. */
+			std::weak_ptr<Model> weakModel;
+			/*! Index of the vertices in the model buffer. */
+			size_t vertexIndex;
+			/*! Index of the indices in the model buffer. */
+			size_t indicesIndex;
+
+			/*! Index of the first instance of the model. */
+			size_t instanceIndex;
+			/*! Amount of instances of this model to render. */
+			size_t instanceCount;
+		};
+
 
 		/*!
-		@brief Helper function to create a debug callback.
-		@return A newly created Vulkan DebugReportCallback.
+		@brief Helper function to record the primary command buffers. Also handles their creation.
+		@param pipeline The pipeline to use for recording.
+		@return The newly created and recorded command buffers.
 		*/
-		vk::DebugReportCallbackEXT createDebugCallback();
+		std::vector<vk::CommandBuffer> createPrimaryCommandBuffers(const VulkanGraphicsPipeline& pipeline);
 
 		/*!
-		@brief Helper function to create a Surface on which rendering operations are possible.
-		@return A newly create Vulkan Surface.
+		@brief Helper function to record the primary command buffers. Optimizes creation by reusing the old command buffers.
+		@param pipeline The pipeline to use for recording.
+		@param oldBuffers The old command buffers, to optimize command buffer recording.
+		@return The newly recorded command buffers.
 		*/
-		vk::SurfaceKHR createSurface(void* windowHandle);
+		std::vector<vk::CommandBuffer> createPrimaryCommandBuffers(
+			const VulkanGraphicsPipeline& pipeline,
+			std::vector<vk::CommandBuffer>&& oldBuffers);
 
 		/*!
-		@brief Helper function to pick out a physical device.
-		@return The picked physical device.
+		@brief Helper function to destroy all secondary command buffers at once.
+		@param[in,out] secondaryBuffers The secondary buffers to destroy.
 		*/
-		vk::PhysicalDevice pickPhysicalDevice();
+		void destroySecondaryBuffers(std::vector<std::vector<vk::CommandBuffer>>& secondaryBuffers);
 
 		/*!
-		@brief Helper function to create a Vulkan Device.
-		@return The newly created Vulkan Device.
+		@brief Helper function to record all secondary command buffers at once.
+		@param modelData The model data to record.
+		@param pipeline The pipeline to use for recording.
+		@return The new collection of created secondary buffers.
 		*/
-		vk::Device createDevice();
+		std::vector<std::vector<vk::CommandBuffer>> createAllSecondaryCommandBuffers(
+			const std::vector<ModelData>& modelData,
+			const VulkanGraphicsPipeline& pipeline);
 
 		/*!
-		@brief Helper function to create a command pool for a queue family.
-		@return The newly created Vulkan CommandPool.
+		@brief Helper function to record the secondary command buffers. 
+		@param modelData The model data to record.
+		@param pipeline The pipeline to use for recording.
+		@param framebuffer The framebuffer to use for inheritance data.
+		@return The created and recorded command buffers.
 		*/
-		vk::CommandPool createCommandPool(int family);
+		std::vector<vk::CommandBuffer> createSecondaryCommandBuffers(
+			const std::vector<ModelData>& modelData,
+			const VulkanGraphicsPipeline& pipeline,
+			const vk::Framebuffer& framebuffer);
 
-		/*!
-		@brief Helper function to destroy the debug callback.
-		*/
-		void destroyDebugCallback();
-
-		/*! The instance used by the renderer. */
-		vk::Instance _instance;
-		/*! The debug callback used by the renderer. */
-		vk::DebugReportCallbackEXT _debugCallback;
-
-		/*! The surface that the renderer uses to render. */
-		vk::SurfaceKHR _surface;
-
-		/*! The physical device picked out by the renderer. */
-		vk::PhysicalDevice _physicalDevice;
-		/*! The logical device offering access to most Vulkan API functions. */
-		vk::Device _device;
-
-		/*! The graphics command queue. */
-		vk::Queue _graphicsQueue;
-		/*! The presentation command queue. */
-		vk::Queue _presentQueue;
-		/*! The transfer command queue. */
-		vk::Queue _transferQueue;
-
-		/*! The graphics command pool. */
-		vk::CommandPool _graphicsCommandPool;
-		/*! The transfer command pool. */
-		vk::CommandPool _transferCommandPool;
+		/*! Abstration of the base of the renderer. */
+		std::shared_ptr<VulkanBase> _base = nullptr;
 
 		/*! Abstraction of the main graphics pipeline. */
-		VulkanGraphicsPipeline _pipeline;
-		/*! Abstraction of model rendering-related operations. */
-		VulkanModelRenderer _modelRenderer;
+		std::shared_ptr<VulkanGraphicsPipeline> _pipeline = nullptr;
+
+		/*! The collection of model data. */
+		std::vector<ModelData> _modelData;
+
+		/*! The main graphics command buffers, handling submitting secondary buffers. */
+		std::vector<vk::CommandBuffer> _primaryGraphicsCommandBuffers;
+		/*! The secondary graphics command buffers. */
+		std::vector<std::vector<vk::CommandBuffer>> _secondaryGraphicsCommandBuffers;
+
+		/*! Main buffer containing model vertex/index data. Device local. */
+		VulkanMemoryBuffer _modelBuffer = nullptr;
+		/*! Main buffer containing model instance transformations for the main pipeline. Host visible and coherent. */
+		VulkanMemoryBuffer _transformBuffer = nullptr;
+		/*! Buffer containing animation data for each instance of the models. */
+		VulkanMemoryBuffer _animationBuffer = nullptr;
+
+		/*! Semaphore controlling access to image availability. */
+		vk::Semaphore _imageSemaphore;
+		/*! Semaphore controlling access to render operations. */
+		vk::Semaphore _renderSemaphore;
 	};
 }
 

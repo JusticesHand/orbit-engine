@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
+#include "VulkanBase.h"
 #include "VulkanImage.h"
 
 #include "VulkanUtils.h"
@@ -23,22 +24,35 @@ namespace Orbit
 		/*!
 		@brief Constructor for the class. Leaves everything in an undefined state.
 		*/
-		VulkanGraphicsPipeline() = default;
+		VulkanGraphicsPipeline(std::nullptr_t);
 
 		/*!
-		@brief Initializes the object with the parameters.
-		@param size The size on which to base the swapchain's extent.
-		@param physicalDevice The physical device hosting the pipeline.
-		@param device The logical device used to create elements.
-		@param surface The surface that will accept the rendering.
-		@param transferPool The command pool to create transfer buffers.
+		@brief Constructor building the pipeline itself.
+		@param base The renderer's base.
+		@param size The size of the extent.
 		*/
-		void init(
-			const glm::ivec2& size,
-			vk::PhysicalDevice physicalDevice, 
-			vk::Device device, 
-			vk::SurfaceKHR surface, 
-			vk::CommandPool transferPool);
+		explicit VulkanGraphicsPipeline(std::shared_ptr<const VulkanBase> base, const glm::ivec2& size);
+
+		VulkanGraphicsPipeline(const VulkanGraphicsPipeline&) = delete;
+		VulkanGraphicsPipeline& operator=(const VulkanGraphicsPipeline&) = delete;
+
+		/*!
+		@brief Move constructor for the class. Invalidates all of rhs while moving its objects to this.
+		@param rhs The graphics pipeline to move.
+		*/
+		VulkanGraphicsPipeline(VulkanGraphicsPipeline&& rhs);
+
+		/*!
+		@brief Move assignment operator for the class. Invalidates all of rhs while moving its objets to this.
+		@param rhs The graphics pipeline to move.
+		@return A reference to this.
+		*/
+		VulkanGraphicsPipeline& operator=(VulkanGraphicsPipeline&& rhs);
+
+		/*!
+		@brief Destructor for the class. Destroys any created objects, if applicable.
+		*/
+		~VulkanGraphicsPipeline();
 
 		/*!
 		@brief Resizes the graphics pipeline by destroying everything requiring knowledge
@@ -51,112 +65,119 @@ namespace Orbit
 		@brief Getter for the framebuffers of the pipeline.
 		@return The framebuffers of the pipeline.
 		*/
-		const std::vector<vk::Framebuffer>& getFramebuffers() const;
+		const std::vector<vk::Framebuffer>& framebuffers() const;
 
 		/*!
 		@brief Getter for the swapchain's extent.
 		@return The swapchain's extent.
 		*/
-		vk::Extent2D getSwapExtent() const;
+		vk::Extent2D swapExtent() const;
 
 		/*!
 		@brief Getter for the pipeline's render pass.
 		@return The pipeline's render pass.
 		*/
-		vk::RenderPass getRenderPass() const;
+		vk::RenderPass renderPass() const;
 
 		/*!
 		@brief Getter for the pipeline's descriptor set.
 		@return The pipeline's descriptor set.
 		*/
-		vk::DescriptorSet getDescriptorSet() const;
+		vk::DescriptorSet descriptorSet() const;
 
 		/*!
 		@brief Getter for the pipeline's layout.
 		@return The pipeline's layout.
 		*/
-		vk::PipelineLayout getPipelineLayout() const;
+		vk::PipelineLayout pipelineLayout() const;
 
 		/*!
 		@brief Getter for the pipeline itself.
 		@return The pipeline.
 		*/
-		vk::Pipeline getGraphicsPipeline() const;
+		vk::Pipeline graphicsPipeline() const;
 
 		/*!
 		@brief Getter for the pipeline's swapchain.
 		@return The swapchain.
 		*/
-		vk::SwapchainKHR getSwapchain() const;
-
-		/*!
-		@brief Frees objects created by the pipeline.
-		*/
-		void cleanup();
+		vk::SwapchainKHR swapchain() const;
 
 	private:
-		/*! The physical device containing the pipeline. */
-		vk::PhysicalDevice _physicalDevice;
-		/*! The logical device used to create the pipeline. */
-		vk::Device _device;
-		/*! The surface the pipeline uses to render. */
-		vk::SurfaceKHR _surface;
-		
 		/*!
 		@brief Helper function to choose the surface format.
 		@return The chosen surface format.
 		*/
-		vk::SurfaceFormatKHR chooseSurfaceFormat();
+		static vk::SurfaceFormatKHR chooseSurfaceFormat(const vk::PhysicalDevice& physicalDevice, const vk::SurfaceKHR& surface);
 
 		/*!
 		@brief Helper function to choose the present mode.
 		@return The chosen present mode.
 		*/
-		vk::PresentModeKHR choosePresentMode();
+		static vk::PresentModeKHR choosePresentMode(const vk::PhysicalDevice& physicalDevice, const vk::SurfaceKHR& surface);
 
 		/*!
 		@brief Helper function to choose the extent.
 		@param size The window's size.
 		@return The chosen extent.
 		*/
-		vk::Extent2D chooseExtent(const glm::ivec2& size);
+		static vk::Extent2D chooseExtent(
+			const vk::PhysicalDevice& physicalDevice, 
+			const vk::SurfaceKHR& surface,
+			const glm::ivec2& size);
 
 		/*!
 		@brief Creates the swapchain. Optionally takes the old swapchain to possibly optimize creation.
 		@param oldSwapchain The old swapchain, or empty to ignore.
 		@return The newly created swapchain.
 		*/
-		vk::SwapchainKHR createSwapchain(vk::SwapchainKHR oldSwapchain = nullptr);
+		static vk::SwapchainKHR createSwapchain(
+			const vk::PhysicalDevice& physicalDevice,
+			const vk::Device& device,
+			const vk::SurfaceKHR& surface,
+			const vk::SurfaceFormatKHR& surfaceFormat,
+			const vk::Extent2D& swapExtent,
+			const vk::PresentModeKHR& presentMode,
+			const VulkanBase::QueueFamilyIndices& indices,
+			vk::SwapchainKHR oldSwapchain = nullptr);
 
 		/*!
 		@brief Helper function to create the render pass.
 		@return The created render pass.
 		*/
-		vk::RenderPass createRenderPass();
+		static vk::RenderPass createRenderPass(
+			const vk::Device& device,
+			const vk::SurfaceFormatKHR& surfaceFormat,
+			const VulkanImage& depthImage);
 
 		/*!
 		@brief Helper function to create the pipeline layout.
 		@return The created pipeline layout.
 		*/
-		vk::PipelineLayout createPipelineLayout();
+		static vk::PipelineLayout createPipelineLayout(
+			const vk::Device& device, 
+			const vk::DescriptorSetLayout& descriptorSetLayout);
 
 		/*!
 		@brief Helper function to create the descriptor set layout.
 		@return The created descriptor set layout.
 		*/
-		vk::DescriptorSetLayout createDescriptorSetLayout();
+		static vk::DescriptorSetLayout createDescriptorSetLayout(const vk::Device& device);
 
 		/*!
 		@brief Helper function to create the descriptor pool.
 		@return The created descriptor pool.
 		*/
-		vk::DescriptorPool createDescriptorPool();
+		static vk::DescriptorPool createDescriptorPool(const vk::Device& device);
 
 		/*!
 		@brief Helper function to create the descriptor set.
 		@return The created descriptor set.
 		*/
-		vk::DescriptorSet createDescriptorSet();
+		static vk::DescriptorSet createDescriptorSet(
+			const vk::Device& device,
+			const vk::DescriptorPool& descriptorPool,
+			const vk::DescriptorSetLayout& descriptorSetLayout);
 
 		/*!
 		@brief Helper function to create the actual graphics pipeline. Takes an optional parameter of the
@@ -164,13 +185,26 @@ namespace Orbit
 		@param oldPipeline The old pipeline, or empty if creating the first one.
 		@return The created pipeline.
 		*/
-		vk::Pipeline createGraphicsPipeline(vk::Pipeline oldPipeline = nullptr);
+		static vk::Pipeline createGraphicsPipeline(
+			const vk::Device& device,
+			const vk::Extent2D& swapExtent,
+			const vk::PipelineLayout& pipelineLayout,
+			const vk::RenderPass& renderPass,
+			vk::Pipeline oldPipeline = nullptr);
 
 		/*!
 		@brief Helper function to create the framebuffers.
 		@return The created framebuffers.
 		*/
-		std::vector<vk::Framebuffer> createFramebuffers();
+		static std::vector<vk::Framebuffer> createFramebuffers(
+			const vk::Device& device,
+			const std::vector<vk::ImageView>& swapchainImageViews,
+			const VulkanImage& depthImage,
+			const vk::RenderPass& renderPass,
+			const vk::Extent2D& swapExtent);
+
+		/*! The renderer's base. */
+		std::shared_ptr<const VulkanBase> _base;
 
 		/*! The chosen surface format. */
 		vk::SurfaceFormatKHR _surfaceFormat;
@@ -202,7 +236,7 @@ namespace Orbit
 		vk::Pipeline _graphicsPipeline;
 
 		/*! The image containing depth information. */
-		VulkanImage _depthImage;
+		VulkanImage _depthImage = nullptr;
 	};
 }
 
