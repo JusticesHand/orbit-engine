@@ -12,7 +12,6 @@
 #define RENDERER Orbit::VulkanRenderer
 
 #include "Renderer.h"
-#include "VulkanGraphicsPipeline.h"
 #include "VulkanMemoryBuffer.h"
 
 #include <memory>
@@ -22,6 +21,7 @@
 namespace Orbit
 {
 	class VulkanBase;
+	class VulkanGraphicsPipeline;
 
 	/*!
 	@brief Implementation of the Renderer virtual class, using Vulkan for rendering operations.
@@ -115,46 +115,80 @@ namespace Orbit
 
 		/*!
 		@brief Helper function to record the primary command buffers. Also handles their creation.
+		@param device The device used for allocations.
+		@param commandPool The command pool to allocate command buffers (should be graphics).
 		@param pipeline The pipeline to use for recording.
+		@param secondaryCommandBuffersCollection A collection of secondary command buffers to be executed from the primaries here.
 		@return The newly created and recorded command buffers.
 		*/
-		std::vector<vk::CommandBuffer> createPrimaryCommandBuffers(const VulkanGraphicsPipeline& pipeline);
+		static std::vector<vk::CommandBuffer> createPrimaryCommandBuffers(
+			const vk::Device& device,
+			const vk::CommandPool& commandPool,
+			const VulkanGraphicsPipeline& pipeline,
+			const std::vector<std::vector<vk::CommandBuffer>>& secondaryCommandBuffersCollection);
 
 		/*!
 		@brief Helper function to record the primary command buffers. Optimizes creation by reusing the old command buffers.
+		@param device The device used for allocations.
+		@param commandPool The command pool to allocate command buffers (should be graphics).
 		@param pipeline The pipeline to use for recording.
+		@param secondaryCommandBuffersCollection A collection of secondary command buffers to be executed from the primaries here.
 		@param oldBuffers The old command buffers, to optimize command buffer recording.
 		@return The newly recorded command buffers.
 		*/
-		std::vector<vk::CommandBuffer> createPrimaryCommandBuffers(
+		static std::vector<vk::CommandBuffer> createPrimaryCommandBuffers(
+			const vk::Device& device,
+			const vk::CommandPool& commandPool,
 			const VulkanGraphicsPipeline& pipeline,
+			const std::vector<std::vector<vk::CommandBuffer>>& secondaryCommandBuffersCollection,
 			std::vector<vk::CommandBuffer>&& oldBuffers);
 
 		/*!
 		@brief Helper function to destroy all secondary command buffers at once.
+		@param device The device used for allocations.
+		@param commandPool The command pool to allocate command buffers (should be graphics).
 		@param[in,out] secondaryBuffers The secondary buffers to destroy.
 		*/
-		void destroySecondaryBuffers(std::vector<std::vector<vk::CommandBuffer>>& secondaryBuffers);
+		static void destroySecondaryBuffers(
+			const vk::Device& device,
+			const vk::CommandPool& commandPool,
+			std::vector<std::vector<vk::CommandBuffer>>& secondaryBuffers);
 
 		/*!
 		@brief Helper function to record all secondary command buffers at once.
-		@param modelData The model data to record.
+		@param device The device used for allocations.
+		@param commandPool The command pool to allocate command buffers (should be graphics).
+		@param modelBuffer The buffer containing model data.
+		@param transformBuffer The buffer containing transform data.
+		@param allModelData The model data to record.
 		@param pipeline The pipeline to use for recording.
 		@return The new collection of created secondary buffers.
 		*/
-		std::vector<std::vector<vk::CommandBuffer>> createAllSecondaryCommandBuffers(
-			const std::vector<ModelData>& modelData,
+		static std::vector<std::vector<vk::CommandBuffer>> createAllSecondaryCommandBuffers(
+			const vk::Device& device,
+			const vk::CommandPool& commandPool,
+			const VulkanMemoryBuffer& modelBuffer,
+			const VulkanMemoryBuffer& transformBuffer,
+			const std::vector<ModelData>& allModelData,
 			const VulkanGraphicsPipeline& pipeline);
 
 		/*!
 		@brief Helper function to record the secondary command buffers. 
-		@param modelData The model data to record.
+		@param device The device used for allocations.
+		@param commandPool The command pool to allocate command buffers (should be graphics).
+		@param modelBuffer The buffer containing model data.
+		@param transformBuffer The buffer containing transformation data.
+		@param allModelData The model data to record.
 		@param pipeline The pipeline to use for recording.
 		@param framebuffer The framebuffer to use for inheritance data.
 		@return The created and recorded command buffers.
 		*/
-		std::vector<vk::CommandBuffer> createSecondaryCommandBuffers(
-			const std::vector<ModelData>& modelData,
+		static std::vector<vk::CommandBuffer> createSecondaryCommandBuffers(
+			const vk::Device& device,
+			const vk::CommandPool& commandPool,
+			const VulkanMemoryBuffer& modelBuffer,
+			const VulkanMemoryBuffer& transformBuffer,
+			const std::vector<ModelData>& allModelData,
 			const VulkanGraphicsPipeline& pipeline,
 			const vk::Framebuffer& framebuffer);
 

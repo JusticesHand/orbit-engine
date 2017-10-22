@@ -137,7 +137,17 @@ VulkanMemoryBuffer::Block& VulkanMemoryBuffer::getBlock(size_t index)
 	return _blocks[index];
 }
 
+const VulkanMemoryBuffer::Block& VulkanMemoryBuffer::getBlock(size_t index) const
+{
+	return _blocks[index];
+}
+
 VulkanMemoryBuffer::Block& VulkanMemoryBuffer::operator[](size_t index)
+{
+	return getBlock(index);
+}
+
+const VulkanMemoryBuffer::Block& VulkanMemoryBuffer::operator[](size_t index) const
 {
 	return getBlock(index);
 }

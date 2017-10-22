@@ -149,6 +149,9 @@ namespace Orbit
 		*/
 		Block& getBlock(size_t index);
 
+		/*! @copydoc VulkanMemoryBuffer::getBlock(size_t) */
+		const Block& getBlock(size_t index) const;
+
 		/*!
 		@brief Indexing operator for getting a block. Simply calls VulkanMemoryBuffer::getBlock().
 		@throw std::out_of_range Throws if the index is out of range - passed on by std::vector.
@@ -156,6 +159,9 @@ namespace Orbit
 		@return The block.
 		*/
 		Block& operator[](size_t index);
+
+		/*! @copydoc VulkanMemoryBuffer::operator[](size_t) */
+		const Block& operator[](size_t index) const;
 
 	private:
 		/*! The renderer's base. */

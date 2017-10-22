@@ -3,6 +3,7 @@
 #include "Render/VulkanRenderer.h"
 
 #include "Render/VulkanBase.h"
+#include "Render/VulkanGraphicsPipeline.h"
 
 #include <GLFW/glfw3.h>
 
@@ -44,7 +45,11 @@ void VulkanRenderer::init(const Window* window)
 	_pipeline = std::make_shared<VulkanGraphicsPipeline>(_base, window->size());
 	
 	_secondaryGraphicsCommandBuffers.resize(_pipeline->framebuffers().size());
-	_primaryGraphicsCommandBuffers = createPrimaryCommandBuffers(*_pipeline);
+	_primaryGraphicsCommandBuffers = createPrimaryCommandBuffers(
+		_base->device(),
+		_base->graphicsCommandPool(),
+		*_pipeline,
+		_secondaryGraphicsCommandBuffers);
 
 	_renderSemaphore = _base->device().createSemaphore({});
 	_imageSemaphore = _base->device().createSemaphore({});
@@ -60,14 +65,24 @@ void VulkanRenderer::flagResize(const glm::ivec2& newSize)
 	_base->presentQueue().waitIdle();
 	_pipeline->resize(newSize);
 	
-	destroySecondaryBuffers(_secondaryGraphicsCommandBuffers);
-	createAllSecondaryCommandBuffers(_modelData, *_pipeline);
+	destroySecondaryBuffers(_base->device(), _base->graphicsCommandPool(), _secondaryGraphicsCommandBuffers);
+	createAllSecondaryCommandBuffers(
+		_base->device(),
+		_base->graphicsCommandPool(),
+		_modelBuffer,
+		_transformBuffer,
+		_modelData, 
+		*_pipeline);
 
 	if (!_primaryGraphicsCommandBuffers.empty())
 		_base->device().freeCommandBuffers(_base->graphicsCommandPool(), _primaryGraphicsCommandBuffers);
 	_primaryGraphicsCommandBuffers.clear();
 
-	_primaryGraphicsCommandBuffers = createPrimaryCommandBuffers(*_pipeline);
+	_primaryGraphicsCommandBuffers = createPrimaryCommandBuffers(
+		_base->device(),
+		_base->graphicsCommandPool(),
+		*_pipeline,
+		_secondaryGraphicsCommandBuffers);
 }
 
 void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)
@@ -196,9 +211,25 @@ void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)
 	//_device.destroyBuffer(textureStagingBuffer);
 	//_device.freeMemory(textureStagingBufferMemory);
 
-	destroySecondaryBuffers(_secondaryGraphicsCommandBuffers);
-	_secondaryGraphicsCommandBuffers = createAllSecondaryCommandBuffers(_modelData, *_pipeline);
-	_primaryGraphicsCommandBuffers = createPrimaryCommandBuffers(*_pipeline, std::move(_primaryGraphicsCommandBuffers));
+	destroySecondaryBuffers(
+		_base->device(),
+		_base->graphicsCommandPool(),
+		_secondaryGraphicsCommandBuffers);
+
+	_secondaryGraphicsCommandBuffers = createAllSecondaryCommandBuffers(
+		_base->device(),
+		_base->graphicsCommandPool(),
+		_modelBuffer,
+		_transformBuffer,
+		_modelData, 
+		*_pipeline);
+
+	_primaryGraphicsCommandBuffers = createPrimaryCommandBuffers(
+		_base->device(),
+		_base->graphicsCommandPool(),
+		*_pipeline, 
+		_secondaryGraphicsCommandBuffers,
+		std::move(_primaryGraphicsCommandBuffers));
 }
 
 void VulkanRenderer::setupViewProjection(const glm::mat4& view, const glm::mat4& projection)
@@ -274,18 +305,29 @@ void VulkanRenderer::waitDeviceIdle()
 }
 
 std::vector<vk::CommandBuffer> VulkanRenderer::createPrimaryCommandBuffers(
-	const VulkanGraphicsPipeline& pipeline)
+	const vk::Device& device,
+	const vk::CommandPool& commandPool,
+	const VulkanGraphicsPipeline& pipeline,
+	const std::vector<std::vector<vk::CommandBuffer>>& secondaryCommandBuffersCollection)
 {
 	vk::CommandBufferAllocateInfo allocInfo = vk::CommandBufferAllocateInfo()
-		.setCommandPool(_base->graphicsCommandPool())
+		.setCommandPool(commandPool)
 		.setLevel(vk::CommandBufferLevel::ePrimary)
-		.setCommandBufferCount(static_cast<uint32_t>(_pipeline->framebuffers().size()));
+		.setCommandBufferCount(static_cast<uint32_t>(pipeline.framebuffers().size()));
 
-	return createPrimaryCommandBuffers(pipeline, _base->device().allocateCommandBuffers(allocInfo));
+	return createPrimaryCommandBuffers(
+		device, 
+		commandPool, 
+		pipeline, 
+		secondaryCommandBuffersCollection,
+		device.allocateCommandBuffers(allocInfo));
 }
 
 std::vector<vk::CommandBuffer> VulkanRenderer::createPrimaryCommandBuffers(
+	const vk::Device& device,
+	const vk::CommandPool& commandPool,
 	const VulkanGraphicsPipeline& pipeline,
+	const std::vector<std::vector<vk::CommandBuffer>>& secondaryCommandBuffersCollection,
 	std::vector<vk::CommandBuffer>&& oldBuffers)
 {
 	std::vector<vk::CommandBuffer> commandBuffers = std::move(oldBuffers);
@@ -298,7 +340,7 @@ std::vector<vk::CommandBuffer> VulkanRenderer::createPrimaryCommandBuffers(
 	{
 		vk::CommandBuffer& commandBuffer = commandBuffers[i];
 		const vk::Framebuffer& framebuffer = framebuffers[i];
-		const std::vector<vk::CommandBuffer>& secondaryCommandBuffers = _secondaryGraphicsCommandBuffers[i];
+		const std::vector<vk::CommandBuffer>& secondaryCommandBuffers = secondaryCommandBuffersCollection[i];
 
 		commandBuffer.begin(vk::CommandBufferBeginInfo()
 			.setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse));
@@ -331,16 +373,23 @@ std::vector<vk::CommandBuffer> VulkanRenderer::createPrimaryCommandBuffers(
 	return commandBuffers;
 }
 
-void VulkanRenderer::destroySecondaryBuffers(std::vector<std::vector<vk::CommandBuffer>>& secondaryBuffers)
+void VulkanRenderer::destroySecondaryBuffers(
+	const vk::Device& device,
+	const vk::CommandPool& commandPool,
+	std::vector<std::vector<vk::CommandBuffer>>& secondaryBuffers)
 {
 	for (std::vector<vk::CommandBuffer>& secondaryBuffer : secondaryBuffers)
 		if (!secondaryBuffer.empty())
-			_base->device().freeCommandBuffers(_base->graphicsCommandPool(), secondaryBuffer);
+			device.freeCommandBuffers(commandPool, secondaryBuffer);
 	secondaryBuffers.clear();
 }
 
 std::vector<std::vector<vk::CommandBuffer>> VulkanRenderer::createAllSecondaryCommandBuffers(
-	const std::vector<ModelData>& modelData,
+	const vk::Device& device,
+	const vk::CommandPool& commandPool,
+	const VulkanMemoryBuffer& modelBuffer,
+	const VulkanMemoryBuffer& transformBuffer,
+	const std::vector<ModelData>& allModelData,
 	const VulkanGraphicsPipeline& pipeline)
 {
 	std::vector<std::vector<vk::CommandBuffer>> secondaryCommandBuffers;
@@ -348,30 +397,41 @@ std::vector<std::vector<vk::CommandBuffer>> VulkanRenderer::createAllSecondaryCo
 	const std::vector<vk::Framebuffer>& framebuffers = pipeline.framebuffers();
 	secondaryCommandBuffers.reserve(framebuffers.size());
 	for (const vk::Framebuffer& framebuffer : framebuffers)
-		secondaryCommandBuffers.push_back(createSecondaryCommandBuffers(modelData, pipeline, framebuffer));
+		secondaryCommandBuffers.push_back(createSecondaryCommandBuffers(
+			device,
+			commandPool,
+			modelBuffer,
+			transformBuffer,
+			allModelData, 
+			pipeline, 
+			framebuffer));
 
 	return secondaryCommandBuffers;
 }
 
 std::vector<vk::CommandBuffer> VulkanRenderer::createSecondaryCommandBuffers(
-	const std::vector<ModelData>& modelData,
+	const vk::Device& device,
+	const vk::CommandPool& commandPool,
+	const VulkanMemoryBuffer& modelBuffer,
+	const VulkanMemoryBuffer& transformBuffer,
+	const std::vector<ModelData>& allModelData,
 	const VulkanGraphicsPipeline& pipeline,
 	const vk::Framebuffer& framebuffer)
 {
-	if (_modelData.empty())
+	if (allModelData.empty())
 		return std::vector<vk::CommandBuffer>();
 
 	vk::CommandBufferAllocateInfo allocInfo = vk::CommandBufferAllocateInfo()
-		.setCommandBufferCount(static_cast<uint32_t>(modelData.size()))
-		.setCommandPool(_base->graphicsCommandPool())
+		.setCommandBufferCount(static_cast<uint32_t>(allModelData.size()))
+		.setCommandPool(commandPool)
 		.setLevel(vk::CommandBufferLevel::eSecondary);
 
-	std::vector<vk::CommandBuffer> secondaryBuffers = _base->device().allocateCommandBuffers(allocInfo);
+	std::vector<vk::CommandBuffer> secondaryBuffers = device.allocateCommandBuffers(allocInfo);
 
 	for (size_t i = 0; i < secondaryBuffers.size(); i++)
 	{
 		vk::CommandBuffer& secondaryBuffer = secondaryBuffers[i];
-		const ModelData& modelData = _modelData[i];
+		const ModelData& modelData = allModelData[i];
 
 		std::shared_ptr<Model> model = modelData.weakModel.lock();
 		if (!model)
@@ -396,17 +456,17 @@ std::vector<vk::CommandBuffer> VulkanRenderer::createSecondaryCommandBuffers(
 
 		// TODO: Add animation data to buffers and offsets (and shaders, and descriptor sets, etc etc)
 		std::array<vk::Buffer, 2> buffers = {
-			_modelBuffer.buffer(),
-			_transformBuffer.buffer()
+			modelBuffer.buffer(),
+			transformBuffer.buffer()
 		};
 
 		std::array<vk::DeviceSize, 2> offsets = {
-			_modelBuffer[modelData.vertexIndex].offset(),
-			_transformBuffer[modelData.instanceIndex + 1].offset()
+			modelBuffer[modelData.vertexIndex].offset(),
+			transformBuffer[modelData.instanceIndex + 1].offset()
 		};
 
 		secondaryBuffer.bindVertexBuffers(0, buffers, offsets);
-		secondaryBuffer.bindIndexBuffer(_modelBuffer.buffer(), _modelBuffer[modelData.indicesIndex].offset(), vk::IndexType::eUint32);
+		secondaryBuffer.bindIndexBuffer(modelBuffer.buffer(), modelBuffer[modelData.indicesIndex].offset(), vk::IndexType::eUint32);
 
 		secondaryBuffer.drawIndexed(
 			static_cast<uint32_t>(model->getIndices().size()),

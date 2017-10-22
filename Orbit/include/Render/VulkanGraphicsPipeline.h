@@ -10,10 +10,10 @@
 #include "VulkanBase.h"
 #include "VulkanImage.h"
 
-#include "VulkanUtils.h"
-
 namespace Orbit
 {
+	class VulkanBase;
+
 	/*!
 	@brief Abstraction of the rendering pipeline portion of Vulkan. Creates the pipeline itself,
 	along with the render pass, pipeline layout, descriptor sets, etc.
@@ -106,18 +106,28 @@ namespace Orbit
 	private:
 		/*!
 		@brief Helper function to choose the surface format.
+		@param physicalDevice The physical device to poll.
+		@param surface The surface on which to render.
 		@return The chosen surface format.
 		*/
-		static vk::SurfaceFormatKHR chooseSurfaceFormat(const vk::PhysicalDevice& physicalDevice, const vk::SurfaceKHR& surface);
+		static vk::SurfaceFormatKHR chooseSurfaceFormat(
+			const vk::PhysicalDevice& physicalDevice, 
+			const vk::SurfaceKHR& surface);
 
 		/*!
 		@brief Helper function to choose the present mode.
+		@param physicalDevice The physical device to poll.
+		@param surface The surface on which to render.
 		@return The chosen present mode.
 		*/
-		static vk::PresentModeKHR choosePresentMode(const vk::PhysicalDevice& physicalDevice, const vk::SurfaceKHR& surface);
+		static vk::PresentModeKHR choosePresentMode(
+			const vk::PhysicalDevice& physicalDevice,
+			const vk::SurfaceKHR& surface);
 
 		/*!
 		@brief Helper function to choose the extent.
+		@param physicalDevice The physical device to poll.
+		@param surface The surface on which to render.
 		@param size The window's size.
 		@return The chosen extent.
 		*/
@@ -128,6 +138,13 @@ namespace Orbit
 
 		/*!
 		@brief Creates the swapchain. Optionally takes the old swapchain to possibly optimize creation.
+		@param physicalDevice The physical device to poll.
+		@param device The device used for allocations.
+		@param surface The surface on which to render.
+		@param surfaceFormat The format of the surface.
+		@param swapExtent The extent of the swap volume.
+		@param presentMode The present mode to be used by the swapchain.
+		@param indices Queue family indices polled by the program.
 		@param oldSwapchain The old swapchain, or empty to ignore.
 		@return The newly created swapchain.
 		*/
@@ -143,6 +160,9 @@ namespace Orbit
 
 		/*!
 		@brief Helper function to create the render pass.
+		@param device The device used for allocations.
+		@param surfaceFormat The format of the surface.
+		@param depthImage The depth image.
 		@return The created render pass.
 		*/
 		static vk::RenderPass createRenderPass(
@@ -152,6 +172,8 @@ namespace Orbit
 
 		/*!
 		@brief Helper function to create the pipeline layout.
+		@param device The device used for allocations.
+		@param descriptorSetLayout The layout of descriptor sets.
 		@return The created pipeline layout.
 		*/
 		static vk::PipelineLayout createPipelineLayout(
@@ -160,18 +182,23 @@ namespace Orbit
 
 		/*!
 		@brief Helper function to create the descriptor set layout.
+		@param device The device used for allocations.
 		@return The created descriptor set layout.
 		*/
 		static vk::DescriptorSetLayout createDescriptorSetLayout(const vk::Device& device);
 
 		/*!
 		@brief Helper function to create the descriptor pool.
+		@param device The device used for allocations.
 		@return The created descriptor pool.
 		*/
 		static vk::DescriptorPool createDescriptorPool(const vk::Device& device);
 
 		/*!
 		@brief Helper function to create the descriptor set.
+		@param device The device used for allocations.
+		@param descriptorPool The descriptor pool to allocate descriptor sets.
+		@param descriptorSetLayout The layout of descriptor sets.
 		@return The created descriptor set.
 		*/
 		static vk::DescriptorSet createDescriptorSet(
@@ -182,6 +209,10 @@ namespace Orbit
 		/*!
 		@brief Helper function to create the actual graphics pipeline. Takes an optional parameter of the
 		old pipeline to hopefully optimize pipeline creation.
+		@param device The device used for allocations.
+		@param swapExtent The extent of the swap volume.
+		@param pipelineLayout The pipeline layout.
+		@param renderPass The renderpass used by the pipeline.
 		@param oldPipeline The old pipeline, or empty if creating the first one.
 		@return The created pipeline.
 		*/
@@ -194,6 +225,11 @@ namespace Orbit
 
 		/*!
 		@brief Helper function to create the framebuffers.
+		@param device The device used for allocations.
+		@param swapchainImageViews The collection of image views for the swapchain images.
+		@param depthImage The depth image.
+		@param renderPass The renderpass used by the pipeline.
+		@param swapExtent The extent of the swap volume.
 		@return The created framebuffers.
 		*/
 		static std::vector<vk::Framebuffer> createFramebuffers(
