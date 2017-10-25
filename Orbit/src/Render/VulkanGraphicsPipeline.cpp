@@ -51,12 +51,20 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(std::shared_ptr<const VulkanBase>
 
 	_depthImage = VulkanImage{
 		_base,
+		{ _swapExtent },
 		depthImageCreateInfo,
 		vk::MemoryPropertyFlagBits::eDeviceLocal
 	};
 
-	_depthImage.transitionLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal, _base->transferCommandPool());
+	vk::Fence transitionFence = _base->device().createFence({});
+	vk::CommandBuffer transitionBuffer = _depthImage[0].transitionLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
 
+	vk::SubmitInfo submit = vk::SubmitInfo()
+		.setCommandBufferCount(1)
+		.setPCommandBuffers(&transitionBuffer);
+
+	_base->transferQueue().submit(submit, transitionFence);
+	
 	_renderPass = createRenderPass(_base->device(), _surfaceFormat, _depthImage);
 	_descriptorSetLayout = createDescriptorSetLayout(_base->device());
 	_descriptorPool = createDescriptorPool(_base->device());
@@ -65,6 +73,8 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(std::shared_ptr<const VulkanBase>
 	_graphicsPipeline = createGraphicsPipeline(_base->device(), _swapExtent, _pipelineLayout, _renderPass);
 	_framebuffers = createFramebuffers(_base->device(), _swapchainImageViews, _depthImage, _renderPass, _swapExtent);
 
+	_base->device().waitForFences(transitionFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+	_base->device().destroyFence(transitionFence);
 }
 
 VulkanGraphicsPipeline::VulkanGraphicsPipeline(VulkanGraphicsPipeline&& rhs)
@@ -361,7 +371,7 @@ vk::RenderPass VulkanGraphicsPipeline::createRenderPass(
 			.setFinalLayout(vk::ImageLayout::ePresentSrcKHR),
 
 		vk::AttachmentDescription()
-			.setFormat(depthImage.format())
+			.setFormat(depthImage[0].format())
 			.setSamples(vk::SampleCountFlagBits::e1)
 			.setLoadOp(vk::AttachmentLoadOp::eClear)
 			.setStoreOp(vk::AttachmentStoreOp::eDontCare)
@@ -418,28 +428,42 @@ vk::PipelineLayout VulkanGraphicsPipeline::createPipelineLayout(
 
 vk::DescriptorSetLayout VulkanGraphicsPipeline::createDescriptorSetLayout(const vk::Device& device)
 {
-	vk::DescriptorSetLayoutBinding layoutBinding = vk::DescriptorSetLayoutBinding()
-		.setBinding(0)
-		.setDescriptorType(vk::DescriptorType::eUniformBuffer)
-		.setDescriptorCount(1)
-		.setStageFlags(vk::ShaderStageFlagBits::eVertex);
+	std::array<vk::DescriptorSetLayoutBinding, 2> layoutBindings = {
+		vk::DescriptorSetLayoutBinding()
+			.setBinding(0)
+			.setDescriptorType(vk::DescriptorType::eUniformBuffer)
+			.setDescriptorCount(1)
+			.setStageFlags(vk::ShaderStageFlagBits::eVertex),
+
+		vk::DescriptorSetLayoutBinding()
+			.setBinding(1)
+			.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+			.setDescriptorCount(1)
+			.setStageFlags(vk::ShaderStageFlagBits::eFragment)
+	};
 
 	vk::DescriptorSetLayoutCreateInfo createInfo = vk::DescriptorSetLayoutCreateInfo()
-		.setBindingCount(1)
-		.setPBindings(&layoutBinding);
+		.setBindingCount(static_cast<uint32_t>(layoutBindings.size()))
+		.setPBindings(layoutBindings.data());
 
 	return device.createDescriptorSetLayout(createInfo);
 }
 
 vk::DescriptorPool VulkanGraphicsPipeline::createDescriptorPool(const vk::Device& device)
 {
-	vk::DescriptorPoolSize size = vk::DescriptorPoolSize()
-		.setDescriptorCount(1)
-		.setType(vk::DescriptorType::eUniformBuffer);
+	std::array<vk::DescriptorPoolSize, 2> sizes = {
+		vk::DescriptorPoolSize()
+			.setDescriptorCount(1)
+			.setType(vk::DescriptorType::eUniformBuffer),
+
+		vk::DescriptorPoolSize()
+			.setDescriptorCount(1)
+			.setType(vk::DescriptorType::eCombinedImageSampler)
+	};
 
 	vk::DescriptorPoolCreateInfo createInfo = vk::DescriptorPoolCreateInfo()
-		.setPoolSizeCount(1)
-		.setPPoolSizes(&size)
+		.setPoolSizeCount(static_cast<uint32_t>(sizes.size()))
+		.setPPoolSizes(sizes.data())
 		.setMaxSets(1);
 
 	return device.createDescriptorPool(createInfo);
@@ -664,7 +688,7 @@ std::vector<vk::Framebuffer> VulkanGraphicsPipeline::createFramebuffers(
 
 	for (const vk::ImageView& imageView : swapchainImageViews)
 	{
-		std::array<vk::ImageView, 2> attachments = { imageView, depthImage.imageView() };
+		std::array<vk::ImageView, 2> attachments = { imageView, depthImage[0].imageView() };
 
 		vk::FramebufferCreateInfo createInfo = vk::FramebufferCreateInfo()
 			.setRenderPass(renderPass)

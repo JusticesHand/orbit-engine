@@ -74,7 +74,20 @@ void TaskRunner::run_func(
 	{
 		time = steady_clock::now();
 
-		run();
+		try
+		{
+			run();
+		}
+		catch (std::exception& ex)
+		{
+			// TODO: Properly log this
+			throw;
+		}
+		catch (...)
+		{
+			// TODO: Properly log this
+			throw;
+		}
 
 		steady_clock::time_point nextTime = time + targetTime;
 		std::this_thread::sleep_until(nextTime);

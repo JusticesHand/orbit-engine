@@ -12,6 +12,7 @@
 #include <set>
 
 #include <Render/Model.h>
+#include <Render/Texture.h>
 
 #include "Input/Window.h"
 
@@ -32,6 +33,7 @@ VulkanRenderer::~VulkanRenderer()
 	_modelBuffer.clear();
 	_transformBuffer.clear();
 	_animationBuffer.clear();
+	_textureImage.clear();
 
 	// Note that command buffers are destroyed upon command pool destruction when destroying the base.
 
@@ -97,38 +99,61 @@ void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)
 	std::vector<vk::DeviceSize> modelDataBlocks;
 	modelDataBlocks.reserve(2 * models.size());
 
+	std::vector<vk::DeviceSize> textureDataBlocks;
+	std::vector<vk::Extent2D> textureExtents;
+
 	// Create transform buffer (sizes used later on)
 	std::vector<vk::DeviceSize> transformBlockSizes = { static_cast<vk::DeviceSize>(sizeof(glm::mat4)) };
 
 	_modelData.reserve(models.size());
-	size_t index = 0;
-	size_t instanceIndex = 0;
-
 	for (const Renderer::ModelCountPair& modelCountPair : models)
 	{
 		modelDataBlocks.push_back(static_cast<vk::DeviceSize>(modelCountPair.first->getVertices().size() * Vertex::size()));
 		modelDataBlocks.push_back(static_cast<vk::DeviceSize>(modelCountPair.first->getIndices().size() * sizeof(uint32_t)));
+
+		if (std::shared_ptr<const Texture> texture = modelCountPair.first->getTexture())
+		{
+			textureDataBlocks.push_back(texture->data().size());
+			textureExtents.push_back(vk::Extent2D{
+				static_cast<uint32_t>(texture->size().x),
+				static_cast<uint32_t>(texture->size().y)
+			});
+		}
+			
 	}
 
 	vk::BufferCreateInfo createInfo = vk::BufferCreateInfo()
 		.setUsage(vk::BufferUsageFlagBits::eTransferSrc)
 		.setSharingMode(vk::SharingMode::eExclusive);
 
-	VulkanMemoryBuffer vertexStagingBuffer{
+	VulkanBuffer vertexStagingBuffer{
 		_base,
 		modelDataBlocks,
 		createInfo,
 		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
 	};
 
+	VulkanBuffer textureStagingBuffer{
+		_base,
+		textureDataBlocks,
+		createInfo,
+		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostVisible
+	};
+
+	size_t modelIndex = 0;
+	size_t textureIndex = 0;
+	size_t instanceIndex = 0;
 	for (const Renderer::ModelCountPair& modelCountPair : models)
 	{
 		std::shared_ptr<Model> model = modelCountPair.first;
 
 		ModelData modelData;
 		modelData.weakModel = modelCountPair.first;
-		modelData.vertexIndex = index++;
-		modelData.indicesIndex = index++;
+		modelData.vertexIndex = modelIndex++;
+		modelData.indicesIndex = modelIndex++;
+
+		if (model->getTexture() != nullptr)
+			modelData.textureIndex = textureIndex++;
 
 		modelData.instanceCount = modelCountPair.second;
 		modelData.instanceIndex = instanceIndex++;
@@ -139,11 +164,18 @@ void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)
 
 		vertexStagingBuffer[modelData.vertexIndex].copy(
 			model->getVertices().data(),
-			model->getVertices().size() * Vertex::size());
+			static_cast<vk::DeviceSize>(model->getVertices().size() * Vertex::size()));
 
 		vertexStagingBuffer[modelData.indicesIndex].copy(
 			model->getIndices().data(),
-			model->getIndices().size() * sizeof(uint32_t));
+			static_cast<vk::DeviceSize>(model->getIndices().size() * sizeof(uint32_t)));
+
+		if (modelData.textureIndex != std::numeric_limits<size_t>::max())
+		{
+			textureStagingBuffer[modelData.textureIndex].copy(
+				model->getTexture()->data().data(),
+				static_cast<vk::DeviceSize>(model->getTexture()->data().size() * sizeof(uint8_t)));
+		}
 	}
 
 	// Create transform buffer. Still host coherent and cohesive, since it's going to be overwritten every frame anyways.
@@ -152,46 +184,93 @@ void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)
 		vk::BufferUsageFlagBits::eIndirectBuffer |
 		vk::BufferUsageFlagBits::eTransferDst);
 
-	_transformBuffer = VulkanMemoryBuffer{
+	_transformBuffer = VulkanBuffer{
 		_base,
 		transformBlockSizes,
 		createInfo,
 		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
 	};
 
-	// Update the descriptor set to point to our new buffer.
-	vk::DescriptorSet descriptorSet = _pipeline->descriptorSet();
-	vk::DescriptorBufferInfo bufferInfo{ _transformBuffer.buffer(), 0Ui64, static_cast<vk::DeviceSize>(sizeof(glm::mat4)) };
-	vk::WriteDescriptorSet descriptorWrite;
-	descriptorWrite
-		.setDstSet(descriptorSet)
-		.setDstBinding(0)
-		.setDstArrayElement(0)
-		.setDescriptorType(vk::DescriptorType::eUniformBuffer)
-		.setDescriptorCount(1)
-		.setPBufferInfo(&bufferInfo);
-
-	_base->device().updateDescriptorSets(descriptorWrite, nullptr);
-
 	createInfo.setUsage(
 		vk::BufferUsageFlagBits::eVertexBuffer |
 		vk::BufferUsageFlagBits::eIndexBuffer |
 		vk::BufferUsageFlagBits::eTransferDst);
 
-	_modelBuffer = VulkanMemoryBuffer{
+	_modelBuffer = VulkanBuffer{
 		_base,
 		modelDataBlocks,
 		createInfo,
 		vk::MemoryPropertyFlagBits::eDeviceLocal
 	};
 
+	vk::ImageCreateInfo imageCreateInfo = vk::ImageCreateInfo()
+		.setImageType(vk::ImageType::e2D)
+		.setMipLevels(1)
+		.setArrayLayers(1)
+		.setFormat(vk::Format::eR8G8B8A8Unorm)
+		.setTiling(vk::ImageTiling::eOptimal)
+		.setInitialLayout(vk::ImageLayout::eUndefined)
+		.setUsage(vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled)
+		.setSharingMode(vk::SharingMode::eExclusive)
+		.setSamples(vk::SampleCountFlagBits::e1);
+
+	_textureImage = VulkanImage{
+		_base,
+		textureExtents,
+		imageCreateInfo,
+		vk::MemoryPropertyFlagBits::eDeviceLocal
+	};
+
+	// Update the descriptor set to point to our new buffer (and texture).
+	vk::DescriptorSet descriptorSet = _pipeline->descriptorSet();
+
+	vk::DescriptorBufferInfo bufferInfo = vk::DescriptorBufferInfo()
+		.setBuffer(_transformBuffer.buffer())
+		.setOffset(0Ui64)
+		.setRange(static_cast<vk::DeviceSize>(sizeof(glm::mat4)));
+
+	std::vector<vk::WriteDescriptorSet> descriptorWrites = {
+		vk::WriteDescriptorSet()
+		.setDstSet(descriptorSet)
+		.setDstBinding(0)
+		.setDstArrayElement(0)
+		.setDescriptorType(vk::DescriptorType::eUniformBuffer)
+		.setDescriptorCount(1)
+		.setPBufferInfo(&bufferInfo)
+	};
+
+	if (_textureImage.imageCount() == 1)
+	{
+		// TODO: Fix this to allow multiple textures. This will work weird when there's more than 1 texture (if it does work at all).
+		// Essentially needs more research
+		vk::DescriptorImageInfo imageInfo = vk::DescriptorImageInfo()
+			.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
+			.setImageView(_textureImage[0].imageView())
+			.setSampler(_textureImage[0].sampler());
+
+		descriptorWrites.push_back(vk::WriteDescriptorSet()
+			.setDstSet(descriptorSet)
+			.setDstBinding(1)
+			.setDstArrayElement(0)
+			.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+			.setDescriptorCount(1)
+			.setPImageInfo(&imageInfo));
+	}
+
+	_base->device().updateDescriptorSets(descriptorWrites, nullptr);
+
 	vk::CommandBuffer vertexTransferBuffer = vertexStagingBuffer.transferToBuffer(_modelBuffer);
+	vk::CommandBuffer textureTransferBuffer = textureStagingBuffer.transferToImage(_textureImage);
+	vk::CommandBuffer textureTransitionBuffer = _textureImage.transitionLayouts(vk::ImageLayout::eShaderReadOnlyOptimal);
 
-	//vk::Buffer textureStagingBuffer;
-	//vk::DeviceMemory textureStagingBufferMemory;
-	//vk::CommandBuffer textureTransferBuffer = buildTextureTransferCommand(models, textureStagingBuffer, textureStagingBufferMemory);
-
-	auto commands = make_array<vk::CommandBuffer>(vertexTransferBuffer); //, textureTransferBuffer
+	std::vector<vk::CommandBuffer> commands;
+	if (vertexTransferBuffer)
+		commands.push_back(vertexTransferBuffer);
+	if (textureTransferBuffer)
+	{
+		commands.push_back(textureTransferBuffer);
+		commands.push_back(textureTransitionBuffer);
+	}
 
 	vk::SubmitInfo submit;
 	submit
@@ -199,17 +278,15 @@ void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)
 		.setPCommandBuffers(commands.data());
 
 	// Create the fence that will be used to synchronize transfer operations.
-	vk::Fence transferFence = _base->device().createFence({}); // Initially the fence is created in the unsignalled state
+	vk::Fence transferFence = _base->device().createFence({});
 
 	_base->transferQueue().submit(submit, transferFence);
 
 	_base->device().waitForFences(transferFence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-
 	_base->device().destroyFence(transferFence);
 
 	vertexStagingBuffer.clear();
-	//_device.destroyBuffer(textureStagingBuffer);
-	//_device.freeMemory(textureStagingBufferMemory);
+	textureStagingBuffer.clear();
 
 	destroySecondaryBuffers(
 		_base->device(),
@@ -387,8 +464,8 @@ void VulkanRenderer::destroySecondaryBuffers(
 std::vector<std::vector<vk::CommandBuffer>> VulkanRenderer::createAllSecondaryCommandBuffers(
 	const vk::Device& device,
 	const vk::CommandPool& commandPool,
-	const VulkanMemoryBuffer& modelBuffer,
-	const VulkanMemoryBuffer& transformBuffer,
+	const VulkanBuffer& modelBuffer,
+	const VulkanBuffer& transformBuffer,
 	const std::vector<ModelData>& allModelData,
 	const VulkanGraphicsPipeline& pipeline)
 {
@@ -412,8 +489,8 @@ std::vector<std::vector<vk::CommandBuffer>> VulkanRenderer::createAllSecondaryCo
 std::vector<vk::CommandBuffer> VulkanRenderer::createSecondaryCommandBuffers(
 	const vk::Device& device,
 	const vk::CommandPool& commandPool,
-	const VulkanMemoryBuffer& modelBuffer,
-	const VulkanMemoryBuffer& transformBuffer,
+	const VulkanBuffer& modelBuffer,
+	const VulkanBuffer& transformBuffer,
 	const std::vector<ModelData>& allModelData,
 	const VulkanGraphicsPipeline& pipeline,
 	const vk::Framebuffer& framebuffer)

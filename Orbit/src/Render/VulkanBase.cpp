@@ -343,6 +343,10 @@ vk::PhysicalDevice VulkanBase::pickPhysicalDevice(const vk::Instance& instance, 
 		// TODO: More checks here to get a more suitable device if applicable as the renderer becomes
 		// more complex.
 
+		// Check if the device can handle sampler anisotropy. Otherwise ignore it.
+		if (!deviceFeatures.samplerAnisotropy)
+			continue;
+
 		// Check whether or not the device can actually render on our surface, which is pretty important
 		// considering we're attempting to do some rendering.
 		// Applying negative logic here saves simplifies code.
@@ -396,7 +400,8 @@ vk::Device VulkanBase::createDevice(const vk::PhysicalDevice& device, const Queu
 			.setPQueuePriorities(&queuePriority));
 	}
 
-	vk::PhysicalDeviceFeatures deviceFeatures;
+	vk::PhysicalDeviceFeatures deviceFeatures = vk::PhysicalDeviceFeatures()
+		.setSamplerAnisotropy(VK_TRUE);
 
 	std::vector<const char*> validationLayers;
 	if (UseValidation)//if constexpr

@@ -20,13 +20,13 @@ namespace Orbit
 	Handles memory allocation through a simple block framework - block sizes are supplied and their access
 	(read/write) is allowed through the getBlock() method.
 	*/
-	class VulkanMemoryBuffer final
+	class VulkanBuffer final
 	{
 	public:
 		/*!
 		@brief Default constructor for the class. Does not allocate any memory - serves as a blank slate to be overriden.
 		*/
-		VulkanMemoryBuffer(std::nullptr_t);
+		VulkanBuffer(std::nullptr_t);
 
 		/*!
 		@brief Constructs a VulkanMemoryBuffer object with the objects in parameter.
@@ -35,32 +35,32 @@ namespace Orbit
 		@param createInfo The create info used to create the buffer. Its size property is set by the contructor.
 		@param memFlags The flags that the memory should possess.
 		*/
-		explicit VulkanMemoryBuffer(
+		explicit VulkanBuffer(
 			std::shared_ptr<const VulkanBase> base,
 			const std::vector<vk::DeviceSize>& blockSizes,
 			vk::BufferCreateInfo createInfo,
 			vk::MemoryPropertyFlags memFlags);
 
-		VulkanMemoryBuffer(const VulkanMemoryBuffer&) = delete;
-		VulkanMemoryBuffer& operator=(const VulkanMemoryBuffer& rhs) = delete;
+		VulkanBuffer(const VulkanBuffer&) = delete;
+		VulkanBuffer& operator=(const VulkanBuffer& rhs) = delete;
 
 		/*!
 		@brief Move constructor for a VulkanMemoryBuffer. Transfers the owned objects.
 		@param rhs The right hand side of the operation.
 		*/
-		VulkanMemoryBuffer(VulkanMemoryBuffer&& rhs);
+		VulkanBuffer(VulkanBuffer&& rhs);
 
 		/*!
 		@brief Move assignment operator for a VulkanMemoryBuffer. Transfers the owned objects.
 		@param rhs The right hand side of the operation.
 		@return A reference to this.
 		*/
-		VulkanMemoryBuffer& operator=(VulkanMemoryBuffer&& rhs);
+		VulkanBuffer& operator=(VulkanBuffer&& rhs);
 
 		/*!
 		@brief Destructor for the class. Ensures that the inner buffer and memory are correctly destroyed.
 		*/
-		~VulkanMemoryBuffer();
+		~VulkanBuffer();
 
 		/*!
 		@brief Helper function to generate a command buffer that handles transfers to another buffer.
@@ -68,10 +68,11 @@ namespace Orbit
 		@param dstOffset The offset into the destination memory.
 		@return A recorded command buffer describing the transfer operation, ready to be submitted.
 		*/
-		vk::CommandBuffer transferToBuffer(VulkanMemoryBuffer& rhs, vk::DeviceSize dstOffset = 0Ui64);
+		vk::CommandBuffer transferToBuffer(VulkanBuffer& rhs, vk::DeviceSize dstOffset = 0Ui64);
 
 		/*!
 		@brief Helper function to generate a command buffer that handles transfers to an image.
+		Assumes that both the buffer and image are the same size - any discrepancy is fairly bad news.
 		@param rhs The image to be the destination of the data.
 		@return A recorded command buffer describing the transfer operation, ready to be submitted.
 		*/
@@ -94,7 +95,7 @@ namespace Orbit
 		class Block final
 		{
 			/*! Only allow a VulkanMemoryBuffer access to the constructor. */
-			friend class VulkanMemoryBuffer;
+			friend class VulkanBuffer;
 
 		public:
 			/*!
@@ -149,7 +150,7 @@ namespace Orbit
 		*/
 		Block& getBlock(size_t index);
 
-		/*! @copydoc VulkanMemoryBuffer::getBlock(size_t) */
+		/*! @copydoc VulkanBuffer::getBlock(size_t) */
 		const Block& getBlock(size_t index) const;
 
 		/*!
@@ -160,7 +161,7 @@ namespace Orbit
 		*/
 		Block& operator[](size_t index);
 
-		/*! @copydoc VulkanMemoryBuffer::operator[](size_t) */
+		/*! @copydoc VulkanBuffer::operator[](size_t) */
 		const Block& operator[](size_t index) const;
 
 	private:

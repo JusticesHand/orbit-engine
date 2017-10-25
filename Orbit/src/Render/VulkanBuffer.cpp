@@ -1,6 +1,7 @@
 /*! @file Render/VulkanMemoryBuffer.cpp */
 
-#include "Render/VulkanMemoryBuffer.h"
+#include "Render/VulkanBuffer.h"
+#include "Render/VulkanImage.h"
 
 #include "Render/VulkanBase.h"
 
@@ -10,11 +11,11 @@
 
 using namespace Orbit;
 
-VulkanMemoryBuffer::VulkanMemoryBuffer(std::nullptr_t)
+VulkanBuffer::VulkanBuffer(std::nullptr_t)
 {
 }
 
-VulkanMemoryBuffer::VulkanMemoryBuffer(
+VulkanBuffer::VulkanBuffer(
 	std::shared_ptr<const VulkanBase> base,
 	const std::vector<vk::DeviceSize>& blockSizes,
 	vk::BufferCreateInfo createInfo,
@@ -51,7 +52,7 @@ VulkanMemoryBuffer::VulkanMemoryBuffer(
 	}
 }
 
-VulkanMemoryBuffer::VulkanMemoryBuffer(VulkanMemoryBuffer&& rhs)
+VulkanBuffer::VulkanBuffer(VulkanBuffer&& rhs)
 	: _base(rhs._base),
 	_buffer(rhs._buffer),
 	_memory(rhs._memory), 
@@ -64,7 +65,7 @@ VulkanMemoryBuffer::VulkanMemoryBuffer(VulkanMemoryBuffer&& rhs)
 	rhs._memory = nullptr;
 }
 
-VulkanMemoryBuffer& VulkanMemoryBuffer::operator=(VulkanMemoryBuffer&& rhs)
+VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& rhs)
 {
 	_base = rhs._base;
 	_buffer = rhs._buffer;
@@ -80,12 +81,12 @@ VulkanMemoryBuffer& VulkanMemoryBuffer::operator=(VulkanMemoryBuffer&& rhs)
 	return *this;
 }
 
-VulkanMemoryBuffer::~VulkanMemoryBuffer()
+VulkanBuffer::~VulkanBuffer()
 {
 	clear();
 }
 
-vk::CommandBuffer VulkanMemoryBuffer::transferToBuffer(VulkanMemoryBuffer& rhs, vk::DeviceSize dstOffset)
+vk::CommandBuffer VulkanBuffer::transferToBuffer(VulkanBuffer& rhs, vk::DeviceSize dstOffset)
 {
 	if (dstOffset + _totalSize > rhs._totalSize)
 		throw std::runtime_error("Attempted to transfer buffers that do not match!");
@@ -112,7 +113,56 @@ vk::CommandBuffer VulkanMemoryBuffer::transferToBuffer(VulkanMemoryBuffer& rhs, 
 	return cmdBuffer;
 }
 
-void VulkanMemoryBuffer::clear()
+vk::CommandBuffer VulkanBuffer::transferToImage(VulkanImage& rhs)
+{
+	if (_totalSize == 0)
+		return nullptr;
+
+	if (_totalSize != rhs.totalSize())
+		throw std::runtime_error("Attempted to transfer buffer to an image that cannot contain it!");
+
+	vk::CommandBufferAllocateInfo allocInfo = vk::CommandBufferAllocateInfo()
+		.setCommandPool(_base->transferCommandPool())
+		.setLevel(vk::CommandBufferLevel::ePrimary)
+		.setCommandBufferCount(1);
+
+	vk::CommandBuffer cmdBuffer = _base->device().allocateCommandBuffers(allocInfo)[0];
+
+	cmdBuffer.begin(vk::CommandBufferBeginInfo()
+		.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit));
+
+	std::vector<vk::CommandBuffer> copyCommands;
+	copyCommands.reserve(rhs.imageCount());
+
+	vk::DeviceSize bufferOffset = 0;
+	for (size_t i = 0; i < rhs.imageCount(); i++)
+	{
+		VulkanImage::Block& block = rhs[i];
+		copyCommands.push_back(rhs[i].copy(*this, bufferOffset, true));
+		bufferOffset += block.size();
+
+		//vk::BufferImageCopy copyRegion = vk::BufferImageCopy()
+		//	.setBufferOffset(bufferOffset)
+		//	.setBufferRowLength(0)
+		//	.setImageSubresource(vk::ImageSubresourceLayers()
+		//		.setAspectMask(vk::ImageAspectFlagBits::eColor)
+		//		.setMipLevel(0)
+		//		.setBaseArrayLayer(0)
+		//		.setLayerCount(1));
+
+		
+
+		//cmdBuffer.copyBufferToImage(_buffer, block.image(), block.layout(), copyRegion);
+	}
+	
+	cmdBuffer.executeCommands(copyCommands);
+
+	cmdBuffer.end();
+
+	return cmdBuffer;
+}
+
+void VulkanBuffer::clear()
 {
 	if (!_base)
 		return;
@@ -127,32 +177,32 @@ void VulkanMemoryBuffer::clear()
 	_blocks.clear();
 }
 
-vk::Buffer VulkanMemoryBuffer::buffer() const
+vk::Buffer VulkanBuffer::buffer() const
 {
 	return _buffer;
 }
 
-VulkanMemoryBuffer::Block& VulkanMemoryBuffer::getBlock(size_t index)
+VulkanBuffer::Block& VulkanBuffer::getBlock(size_t index)
 {
 	return _blocks[index];
 }
 
-const VulkanMemoryBuffer::Block& VulkanMemoryBuffer::getBlock(size_t index) const
+const VulkanBuffer::Block& VulkanBuffer::getBlock(size_t index) const
 {
 	return _blocks[index];
 }
 
-VulkanMemoryBuffer::Block& VulkanMemoryBuffer::operator[](size_t index)
+VulkanBuffer::Block& VulkanBuffer::operator[](size_t index)
 {
 	return getBlock(index);
 }
 
-const VulkanMemoryBuffer::Block& VulkanMemoryBuffer::operator[](size_t index) const
+const VulkanBuffer::Block& VulkanBuffer::operator[](size_t index) const
 {
 	return getBlock(index);
 }
 
-VulkanMemoryBuffer::Block::Block(
+VulkanBuffer::Block::Block(
 	std::shared_ptr<const VulkanBase> base,
 	vk::DeviceMemory memory,
 	vk::DeviceSize size,
@@ -161,7 +211,7 @@ VulkanMemoryBuffer::Block::Block(
 {
 }
 
-void VulkanMemoryBuffer::Block::copy(const void* data, vk::DeviceSize size)
+void VulkanBuffer::Block::copy(const void* data, vk::DeviceSize size)
 {
 	ASSERT_DEBUG(size == _size, "Tried to copy memory of mismatching sizes!");
 
@@ -170,12 +220,12 @@ void VulkanMemoryBuffer::Block::copy(const void* data, vk::DeviceSize size)
 	_base->device().unmapMemory(_memory);
 }
 
-vk::DeviceSize VulkanMemoryBuffer::Block::size() const
+vk::DeviceSize VulkanBuffer::Block::size() const
 {
 	return _size;
 }
 
-vk::DeviceSize VulkanMemoryBuffer::Block::offset() const
+vk::DeviceSize VulkanBuffer::Block::offset() const
 {
 	return _offset;
 }

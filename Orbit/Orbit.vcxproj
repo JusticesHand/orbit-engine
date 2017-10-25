@@ -22,7 +22,7 @@
     <ClInclude Include="include\Render\VulkanBase.h" />
     <ClInclude Include="include\Render\VulkanGraphicsPipeline.h" />
     <ClInclude Include="include\Render\VulkanImage.h" />
-    <ClInclude Include="include\Render\VulkanMemoryBuffer.h" />
+    <ClInclude Include="include\Render\VulkanBuffer.h" />
     <ClInclude Include="include\Render\VulkanRenderer.h" />
     <ClInclude Include="include\Render\VulkanUtils.h" />
     <ClInclude Include="include\Task\TaskRunner.h" />
@@ -38,7 +38,7 @@
     <ClCompile Include="src\Render\VulkanBase.cpp" />
     <ClCompile Include="src\Render\VulkanGraphicsPipeline.cpp" />
     <ClCompile Include="src\Render\VulkanImage.cpp" />
-    <ClCompile Include="src\Render\VulkanMemoryBuffer.cpp" />
+    <ClCompile Include="src\Render\VulkanBuffer.cpp" />
     <ClCompile Include="src\Render\VulkanRenderer.cpp" />
     <ClCompile Include="src\Render\VulkanUtils.cpp" />
     <ClCompile Include="src\Task\TaskRunner.cpp" />

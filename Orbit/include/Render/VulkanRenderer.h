@@ -12,7 +12,8 @@
 #define RENDERER Orbit::VulkanRenderer
 
 #include "Renderer.h"
-#include "VulkanMemoryBuffer.h"
+#include "VulkanBuffer.h"
+#include "VulkanImage.h"
 
 #include <memory>
 
@@ -102,14 +103,17 @@ namespace Orbit
 			/*! Weak pointer reference to the model. */
 			std::weak_ptr<Model> weakModel;
 			/*! Index of the vertices in the model buffer. */
-			size_t vertexIndex;
+			size_t vertexIndex = std::numeric_limits<size_t>::max();
 			/*! Index of the indices in the model buffer. */
-			size_t indicesIndex;
+			size_t indicesIndex = std::numeric_limits<size_t>::max();
+
+			/*! Index of the texture in the texture buffer. */
+			size_t textureIndex = std::numeric_limits<size_t>::max();
 
 			/*! Index of the first instance of the model. */
-			size_t instanceIndex;
+			size_t instanceIndex = std::numeric_limits<size_t>::max();
 			/*! Amount of instances of this model to render. */
-			size_t instanceCount;
+			size_t instanceCount = std::numeric_limits<size_t>::max();
 		};
 
 
@@ -167,8 +171,8 @@ namespace Orbit
 		static std::vector<std::vector<vk::CommandBuffer>> createAllSecondaryCommandBuffers(
 			const vk::Device& device,
 			const vk::CommandPool& commandPool,
-			const VulkanMemoryBuffer& modelBuffer,
-			const VulkanMemoryBuffer& transformBuffer,
+			const VulkanBuffer& modelBuffer,
+			const VulkanBuffer& transformBuffer,
 			const std::vector<ModelData>& allModelData,
 			const VulkanGraphicsPipeline& pipeline);
 
@@ -186,8 +190,8 @@ namespace Orbit
 		static std::vector<vk::CommandBuffer> createSecondaryCommandBuffers(
 			const vk::Device& device,
 			const vk::CommandPool& commandPool,
-			const VulkanMemoryBuffer& modelBuffer,
-			const VulkanMemoryBuffer& transformBuffer,
+			const VulkanBuffer& modelBuffer,
+			const VulkanBuffer& transformBuffer,
 			const std::vector<ModelData>& allModelData,
 			const VulkanGraphicsPipeline& pipeline,
 			const vk::Framebuffer& framebuffer);
@@ -207,11 +211,14 @@ namespace Orbit
 		std::vector<std::vector<vk::CommandBuffer>> _secondaryGraphicsCommandBuffers;
 
 		/*! Main buffer containing model vertex/index data. Device local. */
-		VulkanMemoryBuffer _modelBuffer = nullptr;
+		VulkanBuffer _modelBuffer = nullptr;
 		/*! Main buffer containing model instance transformations for the main pipeline. Host visible and coherent. */
-		VulkanMemoryBuffer _transformBuffer = nullptr;
+		VulkanBuffer _transformBuffer = nullptr;
 		/*! Buffer containing animation data for each instance of the models. */
-		VulkanMemoryBuffer _animationBuffer = nullptr;
+		VulkanBuffer _animationBuffer = nullptr;
+
+		/*! Image (list? array?) containing all textures used by models. */
+		VulkanImage _textureImage = nullptr;
 
 		/*! Semaphore controlling access to image availability. */
 		vk::Semaphore _imageSemaphore;
