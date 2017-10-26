@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include <list>
 #include <vector>
 #include <set>
 
@@ -46,13 +47,6 @@ void VulkanRenderer::init(const Window* window)
 	_base = std::make_shared<VulkanBase>(window);
 	_pipeline = std::make_shared<VulkanGraphicsPipeline>(_base, window->size());
 	
-	_secondaryGraphicsCommandBuffers.resize(_pipeline->framebuffers().size());
-	_primaryGraphicsCommandBuffers = createPrimaryCommandBuffers(
-		_base->device(),
-		_base->graphicsCommandPool(),
-		*_pipeline,
-		_secondaryGraphicsCommandBuffers);
-
 	_renderSemaphore = _base->device().createSemaphore({});
 	_imageSemaphore = _base->device().createSemaphore({});
 }
@@ -140,6 +134,9 @@ void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)
 		vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostVisible
 	};
 
+	// Update the descriptor pool to 1: dealloc old descriptor sets and 2: allow new allocation of just enough descriptor sets.
+	_pipeline->updateDescriptorPool(static_cast<uint32_t>(models.size()));
+
 	size_t modelIndex = 0;
 	size_t textureIndex = 0;
 	size_t instanceIndex = 0;
@@ -151,6 +148,8 @@ void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)
 		modelData.weakModel = modelCountPair.first;
 		modelData.vertexIndex = modelIndex++;
 		modelData.indicesIndex = modelIndex++;
+
+		modelData.descriptorSet = _pipeline->allocateDescriptorSet();
 
 		if (model->getTexture() != nullptr)
 			modelData.textureIndex = textureIndex++;
@@ -221,40 +220,48 @@ void VulkanRenderer::loadModels(const std::vector<ModelCountPair>& models)
 		vk::MemoryPropertyFlagBits::eDeviceLocal
 	};
 
-	// Update the descriptor set to point to our new buffer (and texture).
-	vk::DescriptorSet descriptorSet = _pipeline->descriptorSet();
-
+	// Update the descriptor sets to point to our new buffer (and texture).
+	// Buffer info for the viewProjection transform...
 	vk::DescriptorBufferInfo bufferInfo = vk::DescriptorBufferInfo()
 		.setBuffer(_transformBuffer.buffer())
 		.setOffset(0Ui64)
 		.setRange(static_cast<vk::DeviceSize>(sizeof(glm::mat4)));
 
-	std::vector<vk::WriteDescriptorSet> descriptorWrites = {
-		vk::WriteDescriptorSet()
-		.setDstSet(descriptorSet)
-		.setDstBinding(0)
-		.setDstArrayElement(0)
-		.setDescriptorType(vk::DescriptorType::eUniformBuffer)
-		.setDescriptorCount(1)
-		.setPBufferInfo(&bufferInfo)
-	};
+	
+	std::vector<vk::WriteDescriptorSet> descriptorWrites;
 
-	if (_textureImage.imageCount() == 1)
+	// Need to declare image infos here as to not have memory overriden when used in a loop (since everything uses pointers).
+	// List ensures no resizing i.e. pointers don't change up.
+	std::list<vk::DescriptorImageInfo> imageInfos;
+	for (ModelData& modelData : _modelData)
 	{
-		// TODO: Fix this to allow multiple textures. This will work weird when there's more than 1 texture (if it does work at all).
-		// Essentially needs more research
-		vk::DescriptorImageInfo imageInfo = vk::DescriptorImageInfo()
-			.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
-			.setImageView(_textureImage[0].imageView())
-			.setSampler(_textureImage[0].sampler());
+		vk::DescriptorSet& descriptorSet = modelData.descriptorSet;
 
 		descriptorWrites.push_back(vk::WriteDescriptorSet()
 			.setDstSet(descriptorSet)
-			.setDstBinding(1)
+			.setDstBinding(0)
 			.setDstArrayElement(0)
-			.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+			.setDescriptorType(vk::DescriptorType::eUniformBuffer)
 			.setDescriptorCount(1)
-			.setPImageInfo(&imageInfo));
+			.setPBufferInfo(&bufferInfo));
+
+		if (modelData.textureIndex != std::numeric_limits<size_t>::max())
+		{
+			VulkanImage::Block& imageBlock = _textureImage[modelData.textureIndex];
+
+			imageInfos.push_back(vk::DescriptorImageInfo()
+				.setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal)
+				.setImageView(imageBlock.imageView())
+				.setSampler(imageBlock.sampler()));
+
+			descriptorWrites.push_back(vk::WriteDescriptorSet()
+				.setDstSet(descriptorSet)
+				.setDstBinding(1)
+				.setDstArrayElement(0)
+				.setDescriptorType(vk::DescriptorType::eCombinedImageSampler)
+				.setDescriptorCount(1)
+				.setPImageInfo(&imageInfos.back()));
+		}
 	}
 
 	_base->device().updateDescriptorSets(descriptorWrites, nullptr);
@@ -341,6 +348,9 @@ void VulkanRenderer::queueRender(const std::vector<ModelTransformsPair>& modelTr
 
 void VulkanRenderer::renderFrame()
 {
+	if (_primaryGraphicsCommandBuffers.empty())
+		return;
+
 	waitDeviceIdle();
 
 	vk::SwapchainKHR swapchain = _pipeline->swapchain();
@@ -411,7 +421,7 @@ std::vector<vk::CommandBuffer> VulkanRenderer::createPrimaryCommandBuffers(
 	const std::vector<vk::Framebuffer>& framebuffers = pipeline.framebuffers();
 
 	if (commandBuffers.size() != framebuffers.size())
-		throw std::runtime_error("Renderer is in a weird state!");
+		return createPrimaryCommandBuffers(device, commandPool, pipeline, secondaryCommandBuffersCollection);
 
 	for (size_t i = 0; i < commandBuffers.size(); i++)
 	{
@@ -524,11 +534,12 @@ std::vector<vk::CommandBuffer> VulkanRenderer::createSecondaryCommandBuffers(
 			.setPInheritanceInfo(&inheritanceInfo));
 
 		secondaryBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline.graphicsPipeline());
+
 		secondaryBuffer.bindDescriptorSets(
 			vk::PipelineBindPoint::eGraphics, 
 			pipeline.pipelineLayout(),
 			0U, 
-			pipeline.descriptorSet(),
+			modelData.descriptorSet,
 			nullptr);
 
 		// TODO: Add animation data to buffers and offsets (and shaders, and descriptor sets, etc etc)
@@ -539,7 +550,7 @@ std::vector<vk::CommandBuffer> VulkanRenderer::createSecondaryCommandBuffers(
 
 		std::array<vk::DeviceSize, 2> offsets = {
 			modelBuffer[modelData.vertexIndex].offset(),
-			transformBuffer[modelData.instanceIndex + 1].offset()
+			transformBuffer[modelData.instanceIndex + 1].offset()	// Add 1 since block 0 is the uniform buffer
 		};
 
 		secondaryBuffer.bindVertexBuffers(0, buffers, offsets);

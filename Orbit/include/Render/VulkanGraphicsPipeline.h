@@ -80,10 +80,17 @@ namespace Orbit
 		vk::RenderPass renderPass() const;
 
 		/*!
-		@brief Getter for the pipeline's descriptor set.
-		@return The pipeline's descriptor set.
+		@brief Updates the descriptor pool within to allow the new maximum number of allocated descriptor sets.
+		Note that this will destroy the currently used descriptor sets.
+		@param maxSets The new maximum amount of sets the descriptor pool should use.
 		*/
-		vk::DescriptorSet descriptorSet() const;
+		void updateDescriptorPool(uint32_t maxSets);
+
+		/*!
+		@brief Getter for a newly created descriptor set, allocated from the descriptor pool.
+		@return The newly allocated descriptor set.
+		*/
+		vk::DescriptorSet allocateDescriptorSet() const;
 
 		/*!
 		@brief Getter for the pipeline's layout.
@@ -190,9 +197,10 @@ namespace Orbit
 		/*!
 		@brief Helper function to create the descriptor pool.
 		@param device The device used for allocations.
+		@param maxSets The maximum amount of sets allocated from the pool.
 		@return The created descriptor pool.
 		*/
-		static vk::DescriptorPool createDescriptorPool(const vk::Device& device);
+		static vk::DescriptorPool createDescriptorPool(const vk::Device& device, uint32_t maxSets);
 
 		/*!
 		@brief Helper function to create the descriptor set.
@@ -266,8 +274,6 @@ namespace Orbit
 		vk::DescriptorSetLayout _descriptorSetLayout;
 		/*! The pipeline's descriptor pool. */
 		vk::DescriptorPool _descriptorPool;
-		/*! The pipeline's descriptor set. */
-		vk::DescriptorSet _descriptorSet;
 		/*! The actual graphics pipeline. */
 		vk::Pipeline _graphicsPipeline;
 

@@ -94,7 +94,6 @@ namespace Orbit
 		void waitDeviceIdle() override;
 
 	private:
-
 		/*!
 		@brief Definition of model data, determining where in memory models (and its data) is located.
 		*/
@@ -107,7 +106,9 @@ namespace Orbit
 			/*! Index of the indices in the model buffer. */
 			size_t indicesIndex = std::numeric_limits<size_t>::max();
 
-			/*! Index of the texture in the texture buffer. */
+			/*! Descriptor set used to bind shader state. */
+			vk::DescriptorSet descriptorSet = nullptr;
+			/*! Index of the texture in the texture buffer. Only set if the model has a texture. */
 			size_t textureIndex = std::numeric_limits<size_t>::max();
 
 			/*! Index of the first instance of the model. */

@@ -67,8 +67,6 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(std::shared_ptr<const VulkanBase>
 	
 	_renderPass = createRenderPass(_base->device(), _surfaceFormat, _depthImage);
 	_descriptorSetLayout = createDescriptorSetLayout(_base->device());
-	_descriptorPool = createDescriptorPool(_base->device());
-	_descriptorSet = createDescriptorSet(_base->device(), _descriptorPool, _descriptorSetLayout);
 	_pipelineLayout = createPipelineLayout(_base->device(), _descriptorSetLayout);
 	_graphicsPipeline = createGraphicsPipeline(_base->device(), _swapExtent, _pipelineLayout, _renderPass);
 	_framebuffers = createFramebuffers(_base->device(), _swapchainImageViews, _depthImage, _renderPass, _swapExtent);
@@ -90,7 +88,6 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(VulkanGraphicsPipeline&& rhs)
 	_pipelineLayout(rhs._pipelineLayout),
 	_descriptorSetLayout(rhs._descriptorSetLayout),
 	_descriptorPool(rhs._descriptorPool),
-	_descriptorSet(rhs._descriptorSet),
 	_graphicsPipeline(rhs._graphicsPipeline),
 	_depthImage(std::move(rhs._depthImage))
 {
@@ -102,7 +99,6 @@ VulkanGraphicsPipeline::VulkanGraphicsPipeline(VulkanGraphicsPipeline&& rhs)
 	rhs._pipelineLayout = nullptr;
 	rhs._descriptorSetLayout = nullptr;
 	rhs._descriptorPool = nullptr;
-	rhs._descriptorSet = nullptr;
 	rhs._graphicsPipeline = nullptr;
 }
 
@@ -120,7 +116,6 @@ VulkanGraphicsPipeline& VulkanGraphicsPipeline::operator=(VulkanGraphicsPipeline
 	_pipelineLayout = rhs._pipelineLayout;
 	_descriptorSetLayout = rhs._descriptorSetLayout;
 	_descriptorPool = rhs._descriptorPool;
-	_descriptorSet = rhs._descriptorSet;
 	_graphicsPipeline = rhs._graphicsPipeline;
 	_depthImage = std::move(rhs._depthImage);
 
@@ -132,7 +127,6 @@ VulkanGraphicsPipeline& VulkanGraphicsPipeline::operator=(VulkanGraphicsPipeline
 	rhs._pipelineLayout = nullptr;
 	rhs._descriptorSetLayout = nullptr;
 	rhs._descriptorPool = nullptr;
-	rhs._descriptorSet = nullptr;
 	rhs._graphicsPipeline = nullptr;
 	
 	return *this;
@@ -149,7 +143,8 @@ VulkanGraphicsPipeline::~VulkanGraphicsPipeline()
 
 	_depthImage.clear();
 	_base->device().destroyPipeline(_graphicsPipeline);
-	_base->device().destroyDescriptorPool(_descriptorPool);
+	if (_descriptorPool)
+		_base->device().destroyDescriptorPool(_descriptorPool);
 	_base->device().destroyDescriptorSetLayout(_descriptorSetLayout);
 	_base->device().destroyPipelineLayout(_pipelineLayout);
 	_base->device().destroyRenderPass(_renderPass);
@@ -218,9 +213,17 @@ vk::RenderPass VulkanGraphicsPipeline::renderPass() const
 	return _renderPass;
 }
 
-vk::DescriptorSet VulkanGraphicsPipeline::descriptorSet() const
+void VulkanGraphicsPipeline::updateDescriptorPool(uint32_t maxSets)
 {
-	return _descriptorSet;
+	if (_descriptorPool)
+		_base->device().destroyDescriptorPool(_descriptorPool);
+
+	_descriptorPool = createDescriptorPool(_base->device(), maxSets);
+}
+
+vk::DescriptorSet VulkanGraphicsPipeline::allocateDescriptorSet() const
+{
+	return createDescriptorSet(_base->device(), _descriptorPool, _descriptorSetLayout);
 }
 
 vk::PipelineLayout VulkanGraphicsPipeline::pipelineLayout() const
@@ -449,22 +452,22 @@ vk::DescriptorSetLayout VulkanGraphicsPipeline::createDescriptorSetLayout(const 
 	return device.createDescriptorSetLayout(createInfo);
 }
 
-vk::DescriptorPool VulkanGraphicsPipeline::createDescriptorPool(const vk::Device& device)
+vk::DescriptorPool VulkanGraphicsPipeline::createDescriptorPool(const vk::Device& device, uint32_t maxSets)
 {
 	std::array<vk::DescriptorPoolSize, 2> sizes = {
 		vk::DescriptorPoolSize()
-			.setDescriptorCount(1)
+			.setDescriptorCount(maxSets)
 			.setType(vk::DescriptorType::eUniformBuffer),
 
 		vk::DescriptorPoolSize()
-			.setDescriptorCount(1)
+			.setDescriptorCount(maxSets)
 			.setType(vk::DescriptorType::eCombinedImageSampler)
 	};
 
 	vk::DescriptorPoolCreateInfo createInfo = vk::DescriptorPoolCreateInfo()
 		.setPoolSizeCount(static_cast<uint32_t>(sizes.size()))
 		.setPPoolSizes(sizes.data())
-		.setMaxSets(1);
+		.setMaxSets(maxSets);
 
 	return device.createDescriptorPool(createInfo);
 }

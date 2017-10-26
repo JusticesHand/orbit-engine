@@ -21,17 +21,29 @@ void LoadScene::loadFactories(const Orbit::Input& input)
 	std::shared_ptr<Orbit::Texture> texture = std::make_shared<Orbit::Texture>("Resources/Hello.png");
 
 	std::shared_ptr<Orbit::Model> model1 = std::make_shared<Orbit::Model>(std::vector<Orbit::Vertex>{
-		{{-0.5, -0.5, 0}, {0, 0}, {0, 0, 0}, {1, 0, 0, 1}},
-		{{0.5, -0.5, 0}, {0, 1}, {0, 0, 0}, {0, 1, 0, 1}},
-		{{0.5, 0.5, 0}, {1, 1}, {0, 0, 0}, {0, 0, 1, 1}},
+		{{-0.5, -0.5, 0}, {0, 1}, {0, 0, 0}, {1, 0, 0, 1}},
+		{{0.5, -0.5, 0}, {1, 1}, {0, 0, 0}, {0, 1, 0, 1}},
+		{{0.5, 0.5, 0}, {1, 0}, {0, 0, 0}, {0, 0, 1, 1}},
 
-		{{0.5, 0.5, 0}, {1, 1}, {0, 0, 0}, {0, 0, 1, 1}},
-		{{-0.5, 0.5, 0}, {1, 0}, {0, 0, 0}, {1, 1, 1, 1}},
-		{{-0.5, -0.5, 0}, {0, 0}, {0, 0, 0}, {1, 0, 0, 1}}
+		{{0.5, 0.5, 0}, {1, 0}, {0, 0, 0}, {0, 0, 1, 1}},
+		{{-0.5, 0.5, 0}, {0, 0}, {0, 0, 0}, {1, 1, 1, 1}},
+		{{-0.5, -0.5, 0}, {0, 1}, {0, 0, 0}, {1, 0, 0, 1}}
 		}, texture);
 
+	std::shared_ptr<Orbit::Texture> texture2 = std::make_shared<Orbit::Texture>("Resources/Hi.png");
+
+	std::shared_ptr<Orbit::Model> model2 = std::make_shared<Orbit::Model>(std::vector<Orbit::Vertex>{
+		{ {-0.5, -0.5, 0}, { 0, 1 }, { 0, 0, 0 }, { 1, 0, 0, 1 }},
+		{ { 0.5, -0.5, 0 },{ 1, 1 },{ 0, 0, 0 },{ 0, 1, 0, 1 } },
+		{ { 0.5, 0.5, 0.5 },{ 1, 0 },{ 0, 0, 0 },{ 0, 0, 1, 1 } },
+
+		{ { 0.5, 0.5, 0.5 },{ 1, 0 },{ 0, 0, 0 },{ 0, 0, 1, 1 } },
+		{ { -0.5, 0.5, 0 },{ 0, 0 },{ 0, 0, 0 },{ 1, 1, 1, 1 } },
+		{ { -0.5, -0.5, 0 },{ 0, 1 },{ 0, 0, 0 },{ 1, 0, 0, 1 } }
+	}, texture2);
+
 	storeFactory<TestNode>(std::make_unique<TestNodeFactory>(input, model1));
-	storeFactory<TestNode2>(std::make_unique<TestNode2Factory>(input, model1));
+	storeFactory<TestNode2>(std::make_unique<TestNode2Factory>(input, model2));
 }
 
 void LoadScene::load(Orbit::CompositeTree& tree)

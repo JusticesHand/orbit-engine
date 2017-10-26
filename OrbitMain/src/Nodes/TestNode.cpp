@@ -48,7 +48,7 @@ void TestNode::update(std::chrono::nanoseconds elapsedTime)
 	if (_accumulatedTime >= seconds(1))
 	{
 		_accumulatedTime = nanoseconds::zero();
-		std::cout << "A second has passed." << std::endl;
+		std::cout << "Ticks per second: " << duration_cast<nanoseconds>(seconds(1)) / elapsedTime << std::endl;
 	}
 
 	if (getInput().keyPressed(Orbit::Key::Code::A))
